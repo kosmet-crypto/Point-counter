@@ -816,9 +816,16 @@ function setEntry(ai, key, points){
   if(ex){ ex.points = points; delete ex.src; delete ex.o; } else a.history.push({ date:iso, points });
   a.history.sort((x,y)=>x.date<y.date?-1:1);
 }
+// Account pre-selected in the Add points / import sheets: the one shown on the current tab
+// (home card pick, or the Stats account), otherwise the last one used.
+function defaultAcc(){
+  if(ui.tab==='home') return heroIndex();
+  if(ui.tab==='stats') return curStatsAcc();
+  return ui.lastAcc!=null && ui.lastAcc<data.accounts.length ? ui.lastAcc : data.mainAccountIndex;
+}
 function openEntry(pref){
   if(!data.accounts.length){ toast('Create an account first'); setTab('home'); return; }
-  let acc = pref!=null ? pref : (ui.lastAcc!=null && ui.lastAcc<data.accounts.length ? ui.lastAcc : (ui.tab==='stats' ? curStatsAcc() : data.mainAccountIndex));
+  let acc = pref!=null ? pref : defaultAcc();
   let mode = ui.entryMode;
   openSheet('<h2>Add points</h2>'+
     '<div class="chips" id="enChips"></div>'+
@@ -1045,7 +1052,7 @@ function applyImport(ai, list, mode, name){
 }
 function openImportFile(pref){
   if(!data.accounts.length){ toast('Create an account first'); return; }
-  let acc = pref!=null ? pref : (ui.lastAcc!=null && ui.lastAcc<data.accounts.length ? ui.lastAcc : (ui.tab==='stats' ? curStatsAcc() : data.mainAccountIndex));
+  let acc = pref!=null ? pref : defaultAcc();
   let parsed = null, mode = 'keep', order = null;
   openSheet('<h2>Import from file</h2><label class="lbl">Import into</label><div class="chips" id="ifChips"></div>'+
     '<button class="btn sec" id="ifPick">Choose file</button>'+

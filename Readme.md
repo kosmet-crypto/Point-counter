@@ -26,7 +26,11 @@ Always the newest version: https://github.com/kosmet-crypto/Point-counter/releas
 2. Open the file. Android will ask to allow installs from your browser or file manager; allow it once.
 3. Install. Newer APKs install over the old one and keep your data.
 
-The app checks for a newer release at most twice a day and offers to download it. Updates are not silent: you tap **Download**, then open the file to install.
+Updates:
+* **Page updates (most changes):** on every start with internet, the app downloads the latest `index.html` from `main` and uses it from the next start. No APK, no taps. If a downloaded page fails to start, the app falls back to the version inside the APK.
+* **APK updates (Android-side changes):** the app checks the latest release at most twice a day (or right away with **Check for updates** on the Accounts tab) and installs it from inside the app with one confirmation. The first time, Android asks you to allow Point to install updates.
+
+When the page starts calling a new `PointAndroid` method, raise `<meta name="point-native-api">` in `index.html` and `WebUpdater.NATIVE_API` in the app, so older apps keep their page until the APK is updated.
 
 The APK bundles `index.html`, so it works offline from the first launch. Its data is stored inside the app,
 separately from the browser version, so use **Export backup** in the browser and **Import backup** in the app (Accounts tab) to move your data.

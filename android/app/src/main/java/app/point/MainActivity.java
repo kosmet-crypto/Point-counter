@@ -9,6 +9,8 @@ import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -42,17 +44,34 @@ public class MainActivity extends Activity {
     private static final int REQ_PICK_FILE = 1;
     private static final int REQ_SAVE_FILE = 2;
 
+    /** How long a downloaded page gets to report it started before the bundled page is used again. */
+    private static final long PAGE_START_TIMEOUT = 15000;
+    /** A page update downloaded in the background is applied when returning after this long. */
+    private static final long RELOAD_AFTER_AWAY = 10 * 60 * 1000L;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
+    private WebUpdater web;
     private ValueCallback<Uri[]> pendingPick;
     private String pendingSaveText;
+    private boolean pageReady;
+    private boolean pageUpdatePending;
+    private boolean installAfterPermission;
+    private long pausedAt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        web = new WebUpdater(this);
+        // A downloaded page (see WebUpdater) is served at the same URL as the bundled one.
+        final WebViewAssetLoader.AssetsPathHandler assets = new WebViewAssetLoader.AssetsPathHandler(this);
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .setDomain(HOST)
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/assets/", path -> {
+                    WebResourceResponse page = web.intercept(path);
+                    return page != null ? page : assets.handle(path);
+                })
                 .build();
 
         webView = new WebView(this);
@@ -109,8 +128,50 @@ public class MainActivity extends Activity {
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState);
         else webView.loadUrl(START_URL);
+        watchPageStart();
 
+        ApkInstaller.handleStatus(this, getIntent(), this::toast);
         if (savedInstanceState == null) checkForUpdate(false);
+    }
+
+    /** If a downloaded page never reports that it started, fall back to the bundled page. */
+    private void watchPageStart() {
+        pageReady = false;
+        handler.removeCallbacks(pageStartCheck);
+        if (web.isActive()) handler.postDelayed(pageStartCheck, PAGE_START_TIMEOUT);
+    }
+
+    private final Runnable pageStartCheck = () -> {
+        if (pageReady || !web.isActive()) return;
+        web.rollBack();
+        webView.loadUrl(START_URL);
+        pageReady = false;
+    };
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        ApkInstaller.handleStatus(this, intent, this::toast);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        pausedAt = System.currentTimeMillis();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (installAfterPermission && getPackageManager().canRequestPackageInstalls()) {
+            installAfterPermission = false;
+            startApkInstall();
+        } else if (pageUpdatePending && pausedAt > 0
+                && System.currentTimeMillis() - pausedAt > RELOAD_AFTER_AWAY) {
+            pageUpdatePending = false;
+            webView.loadUrl(START_URL);
+            watchPageStart();
+        }
     }
 
     /* ---------- update check ---------- */
@@ -118,18 +179,31 @@ public class MainActivity extends Activity {
     private static final long UPDATE_CHECK_INTERVAL = 12 * 60 * 60 * 1000L;
 
     /**
-     * Looks up the latest GitHub Release (tagged v1.0.<versionCode>) and offers to download it
-     * when it is newer than this install. The automatic check on launch is throttled and silent;
-     * a manual check (the "Check for updates" button) always runs and reports the result.
+     * Two kinds of updates:
+     * 1. The web page (WebUpdater): downloaded silently and used from the next start.
+     * 2. The APK: the latest GitHub Release (tagged v1.0.<versionCode>); offered in a dialog
+     *    and installed from inside the app (ApkInstaller).
+     * On launch the page is checked every time and the APK at most every 12 hours, silently;
+     * the "Check for updates" button checks both right away and reports the result.
      */
     private void checkForUpdate(final boolean manual) {
         final SharedPreferences prefs = getSharedPreferences("update", MODE_PRIVATE);
         long now = System.currentTimeMillis();
-        if (!manual && now - prefs.getLong("lastCheck", 0) < UPDATE_CHECK_INTERVAL) return;
-        prefs.edit().putLong("lastCheck", now).apply();
+        final boolean checkApk = manual || now - prefs.getLong("lastCheck", 0) >= UPDATE_CHECK_INTERVAL;
+        if (checkApk) prefs.edit().putLong("lastCheck", now).apply();
         if (manual) toast("Checking for updates…");
 
         new Thread(() -> {
+            boolean newPage = false, pageChecked = false;
+            try {
+                newPage = web.check();
+                pageChecked = true;
+            } catch (Exception ignored) {
+                // Offline or GitHub unreachable: keep the current page.
+            }
+            final boolean pageUpdated = newPage;
+            if (pageUpdated && !manual) runOnUiThread(() -> pageUpdatePending = true);
+            if (!checkApk) return;
             try {
                 URL api = new URL("https://api.github.com/repos/" + BuildConfig.UPDATE_REPO + "/releases/latest");
                 HttpURLConnection c = (HttpURLConnection) api.openConnection();
@@ -148,12 +222,39 @@ public class MainActivity extends Activity {
                 final long latest = Long.parseLong(tag.substring(tag.lastIndexOf('.') + 1));
                 final String name = tag.startsWith("v") ? tag.substring(1) : tag;
                 if (latest > installedVersionCode()) runOnUiThread(() -> showUpdateDialog(name));
+                else if (manual && pageUpdated) runOnUiThread(this::showPageUpdatedDialog);
                 else if (manual) toast("You have the latest version");
             } catch (Exception e) {
                 // No network, rate limit or unexpected response: the automatic check tries again later.
-                if (manual) toast("Could not check. Are you online?");
+                if (manual && pageUpdated) runOnUiThread(this::showPageUpdatedDialog);
+                else if (manual && pageChecked) toast("You have the latest version");
+                else if (manual) toast("Could not check. Are you online?");
             }
         }).start();
+    }
+
+    private void showPageUpdatedDialog() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Update downloaded")
+                .setMessage("A new version of Point is ready. Restart now to use it? Your data stays in place.")
+                .setPositiveButton("Restart", (d, w) -> {
+                    pageUpdatePending = false;
+                    webView.loadUrl(START_URL);
+                    watchPageStart();
+                })
+                .setNegativeButton("Later", (d, w) -> pageUpdatePending = true)
+                .show();
+    }
+
+    private void startApkInstall() {
+        if (!ApkInstaller.ensureAllowed(this)) {
+            installAfterPermission = true;
+            Toast.makeText(this, "Allow Point to install updates, then go back", Toast.LENGTH_LONG).show();
+            return;
+        }
+        toast("Downloading update…");
+        new Thread(() -> ApkInstaller.downloadAndInstall(this, this::toast)).start();
     }
 
     private void toast(final String msg) {
@@ -169,8 +270,11 @@ public class MainActivity extends Activity {
         if (isFinishing()) return;
         new AlertDialog.Builder(this)
                 .setTitle("Update available")
-                .setMessage("Point " + version + " is ready. Download it and open the file to update. Your data stays in place.")
-                .setPositiveButton("Download", (d, w) -> {
+                .setMessage("Point " + version + " is ready. Install it now? Your data stays in place.")
+                .setPositiveButton("Update", (d, w) -> startApkInstall())
+                .setNegativeButton("Later", null)
+                // Fallback if the in-app install does not work on this phone.
+                .setNeutralButton("Browser", (d, w) -> {
                     Uri apk = Uri.parse("https://github.com/" + BuildConfig.UPDATE_REPO
                             + "/releases/latest/download/point.apk");
                     try {
@@ -178,7 +282,6 @@ public class MainActivity extends Activity {
                     } catch (ActivityNotFoundException ignored) {
                     }
                 })
-                .setNegativeButton("Later", null)
                 .show();
     }
 
@@ -186,7 +289,14 @@ public class MainActivity extends Activity {
     private class Bridge {
         @JavascriptInterface
         public String getVersion() {
-            return BuildConfig.VERSION_NAME;
+            String page = web.activeId();
+            return page.isEmpty() ? BuildConfig.VERSION_NAME : BuildConfig.VERSION_NAME + " · page " + page;
+        }
+
+        /** Called by index.html once it has rendered; proves a downloaded page works. */
+        @JavascriptInterface
+        public void ready() {
+            runOnUiThread(() -> pageReady = true);
         }
 
         @JavascriptInterface

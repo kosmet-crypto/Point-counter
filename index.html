@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0d13">
+<!-- Android app: bridge features this page needs (see WebUpdater.NATIVE_API). Raise it only when the page
+     starts calling a new PointAndroid method; older apps then keep their page until the APK is updated. -->
+<meta name="point-native-api" content="1">
 <title>Point</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -1178,6 +1181,8 @@ function render(){
   requestAnimationFrame(drawCharts);
 }
 render();
+// Android app: tell it the page started, so a downloaded page that fails is rolled back.
+if(window.PointAndroid && PointAndroid.ready) PointAndroid.ready();
 
 /* ---------- updates ---------- */
 // Android app: the native side asks GitHub Releases and shows the result itself.

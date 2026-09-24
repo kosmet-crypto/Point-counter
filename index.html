@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0d13">
+<title>Point</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Point">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0d13; --surface:#14151e; --surface2:#1b1d29; --line:#262839;
+  --text:#f3f4f9; --muted:#8c90a8; --accent:#8b7bff; --accent-ink:#0c0d13;
+  --accent-soft:rgba(139,123,255,.16); --pos:#3ddc97; --neg:#ff6b81;
+  --pos-soft:rgba(61,220,151,.14); --neg-soft:rgba(255,107,129,.14);
+  --dot:rgba(255,255,255,.085); --shadow:0 18px 40px -18px rgba(0,0,0,.7);
+  --font:"Manrope",ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#f3f3f8; --surface:#ffffff; --surface2:#eceef6; --line:#dfe1ee;
+    --text:#14151f; --muted:#666a85; --accent:#6a58f0; --accent-ink:#ffffff;
+    --accent-soft:rgba(106,88,240,.12); --pos:#0f9d63; --neg:#e0405a;
+    --pos-soft:rgba(15,157,99,.12); --neg-soft:rgba(224,64,90,.12);
+    --dot:rgba(20,21,31,.09); --shadow:0 18px 40px -22px rgba(40,40,90,.35);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);font-variant-numeric:tabular-nums;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);
+  -webkit-font-smoothing:antialiased}
+body.noscroll{overflow:hidden}
+.app{max-width:560px;margin:0 auto}
+button,input,select{font-family:inherit;font-size:16px;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+.tab{display:none}.tab.on{display:block}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.35rem;letter-spacing:-.02em}
+.brand svg{width:26px;height:26px;color:var(--accent)}
+.date{color:var(--muted);font-size:.85rem;font-weight:600}
+.page-title{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin:2px 0 14px}
+
+/* hero */
+.hero{position:relative;border-radius:26px;padding:22px 20px 18px;margin-bottom:14px;overflow:hidden;border:1px solid #e3e5f0;
+  --text:#14151f;--muted:#666a85;--pos:#0f9d63;--neg:#e0405a;--accent:#6a58f0;--accent-soft:rgba(106,88,240,.12);
+  background:#ffffff;color:var(--text);box-shadow:var(--shadow)}
+.hero-top{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:700;font-size:.9rem}
+.badge{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:.75rem;font-weight:700}
+.hero-num{font-size:clamp(2.6rem,13vw,3.6rem);font-weight:800;letter-spacing:-.045em;line-height:1.05;margin:10px 0 6px}
+.hero-delta{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem}
+.hero-delta small{color:var(--muted);font-weight:600;font-size:.82rem}
+.sortbtn{background:transparent;border-style:dashed}
+.avg4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.avg4>div{background:var(--surface2);border-radius:12px;padding:9px 4px;text-align:center}
+.avg4 b{display:block;font-size:1rem;font-weight:800}
+.avg4 span{font-size:.72rem;color:var(--muted);font-weight:600}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.flat{color:var(--muted)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.hero-stats div{background:rgba(127,127,160,.09);border-radius:14px;padding:10px 12px}
+.hero-stats .k{font-size:.74rem;color:var(--muted);font-weight:600}
+.hero-stats .v{font-size:1.02rem;font-weight:800;margin-top:2px}
+.goal{margin-top:16px}
+.goal-row{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:7px;gap:10px}
+.goal-row b{color:var(--text)}
+.bar{height:8px;border-radius:99px;background:rgba(127,127,160,.16);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#b7abff)}
+
+.strip{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:6px;font-weight:600;font-size:.9rem;color:var(--muted)}
+.strip b{color:var(--text);font-size:1rem}
+
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 10px}
+.sec-head h2{font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+.sec-head span{font-size:.8rem;color:var(--muted);font-weight:600}
+
+/* account cards */
+.acc-card{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.acc-card .nm{display:flex;align-items:center;gap:8px;font-weight:700}
+.dotc{width:10px;height:10px;border-radius:50%;flex:none}
+.acc-card .pts{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+.acc-card .sub{font-size:.8rem;color:var(--muted);font-weight:600}
+.acc-card svg.spark{width:96px;height:34px;grid-row:1 / span 3;grid-column:2;justify-self:end}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:.78rem;font-weight:700}
+.pill.pos{background:var(--pos-soft)}.pill.neg{background:var(--neg-soft)}.pill.flat{background:var(--surface2)}
+
+/* controls */
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
+.chips::-webkit-scrollbar{display:none}
+.chip-btn{flex:none;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:.9rem;white-space:nowrap}
+.chip-btn.on{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;padding:9px 6px;border-radius:11px;font-weight:700;font-size:.9rem;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.18)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.tile .k{font-size:.78rem;color:var(--muted);font-weight:600}
+.tile .v{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;margin:3px 0 1px}
+.tile .s{font-size:.76rem;color:var(--muted);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:10px}
+.card h3{font-size:.98rem;font-weight:800;margin-bottom:4px}
+.card p.note{font-size:.85rem;color:var(--muted);font-weight:600;line-height:1.45}
+.card .big{font-size:1.05rem;font-weight:700;line-height:1.4;margin-top:8px}
+
+.lb-row{display:grid;grid-template-columns:22px 1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;padding:10px 0;border-top:1px solid var(--line)}
+.lb-row:first-of-type{border-top:0}
+.lb-rank{color:var(--muted);font-weight:800;font-size:.85rem}
+.lb-name{font-weight:700;display:flex;align-items:center;gap:8px}
+.lb-val{font-weight:800;text-align:right}
+.lb-bar{grid-column:2 / span 2;height:5px;border-radius:9px;background:var(--surface2);overflow:hidden}
+.lb-bar i{display:block;height:100%;border-radius:9px}
+
+/* heatmap */
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:4px;margin-top:10px}
+.heat button{aspect-ratio:1;border-radius:5px;background:var(--surface2);min-width:0}
+.heat button.void{background:transparent;border:1px dashed var(--line)}
+.heat button.none{background:var(--surface2)}
+.heat-legend{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:.74rem;color:var(--muted);font-weight:600;margin-top:10px}
+.heat-legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+
+/* history */
+.hist{width:100%;display:grid;grid-template-columns:1fr auto;gap:0 12px;text-align:left;padding:11px 0;border-top:1px solid var(--line)}
+.hist:first-of-type{border-top:0}
+.hist .d{font-size:.8rem;color:var(--muted);font-weight:600}
+.hist .p{font-weight:800}
+.hist .c{grid-row:1 / span 2;grid-column:2;align-self:center;font-weight:700;font-size:.9rem}
+
+/* charts */
+.chart-wrap{position:relative;margin-top:8px}
+.chart-wrap canvas{width:100%;height:220px;display:block;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;font-weight:600;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.78rem;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:opacity .12s;min-width:120px;z-index:5}
+.tip.on{opacity:1}
+.tip .td{color:var(--muted);margin-bottom:4px}
+.tip .tr{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.tip .tr b{margin-left:10px}
+.empty{padding:26px 8px;text-align:center;color:var(--muted);font-weight:600;font-size:.9rem;line-height:1.5}
+
+/* forms + buttons */
+.field{display:block;width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:12px;color:var(--text)}
+.field:focus{border-color:var(--accent);outline:none}
+.lbl{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin:2px 2px 7px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:15px;font-weight:800;background:var(--accent);color:var(--accent-ink)}
+.btn:active{filter:brightness(.92)}
+.btn.sec{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:var(--neg-soft);color:var(--neg)}
+.btn+.btn{margin-top:10px}
+.row{display:flex;gap:8px;align-items:center}
+.row .field{margin-bottom:0}
+.row .chip-btn{padding:14px 15px}
+.mt{margin-top:12px}
+
+.acct-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:8px}
+.acct-item .grow{flex:1}
+.acct-item .n{font-weight:700}.acct-item .m{font-size:.8rem;color:var(--muted);font-weight:600}
+
+.banner{display:flex;gap:12px;align-items:center;background:var(--accent-soft);border:1px solid var(--accent);border-radius:16px;padding:12px 14px;margin-bottom:14px;font-size:.86rem;font-weight:600;line-height:1.4}
+.banner button{flex:none;background:var(--accent);color:var(--accent-ink);font-weight:800;border-radius:11px;padding:9px 13px;font-size:.85rem}
+
+/* nav + fab */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;padding:0 12px calc(env(safe-area-inset-bottom,0px) + 10px);pointer-events:none}
+.nav-in{pointer-events:auto;display:flex;gap:4px;width:100%;max-width:520px;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:22px;padding:6px;box-shadow:var(--shadow)}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border-radius:16px;color:var(--muted);font-size:.7rem;font-weight:700}
+.nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav button.on{color:var(--accent);background:var(--accent-soft)}
+.fab{position:fixed;right:max(16px,calc(50% - 264px));bottom:calc(env(safe-area-inset-bottom,0px) + 88px);z-index:19;display:flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-ink);font-weight:800;padding:14px 20px;border-radius:999px;box-shadow:0 14px 30px -10px var(--accent)}
+.fab svg{width:18px;height:18px;stroke:currentColor;stroke-width:3;fill:none;stroke-linecap:round}
+.fab.hide{display:none}
+
+/* sheet */
+#sheetRoot{position:fixed;inset:0;z-index:50;display:none}
+#sheetRoot.open{display:block}
+.backdrop{position:absolute;inset:0;background:rgba(5,6,12,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:26px 26px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 22px);animation:up .22s ease-out}
+@keyframes up{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.grab{width:40px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 14px}
+.sheet h2{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;margin-bottom:14px}
+.sheet .prev{background:var(--surface2);border-radius:14px;padding:11px 14px;font-size:.86rem;font-weight:600;color:var(--muted);margin:2px 0 14px;line-height:1.45;min-height:44px}
+.sheet .prev b{color:var(--text)}
+.sheet .prev.warn{color:var(--neg);background:var(--neg-soft)}
+.bigfield{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;text-align:center;padding:16px}
+
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%) translateY(10px);background:var(--text);color:var(--bg);padding:11px 20px;border-radius:999px;font-weight:700;font-size:.88rem;opacity:0;pointer-events:none;transition:.2s;z-index:80;max-width:88vw;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}#toast,.tip{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="tab on" id="tab-home"></section>
+  <section class="tab" id="tab-stats"></section>
+  <section class="tab" id="tab-charts"></section>
+  <section class="tab" id="tab-accounts"></section>
+</div>
+
+<button class="fab" id="fab" data-a="add" aria-label="Add points"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add points</button>
+
+<nav class="nav" aria-label="Main">
+  <div class="nav-in">
+    <button data-a="tab" data-v="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button data-a="tab" data-v="stats"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Stats</button>
+    <button data-a="tab" data-v="charts"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M3 21h18"/></svg>Charts</button>
+    <button data-a="tab" data-v="accounts"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c1.9.6 3.2 2.3 3.6 5.3"/></svg>Accounts</button>
+  </div>
+</nav>
+
+<div id="sheetRoot"></div>
+<div id="toast"></div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
+
+<script>
+"use strict";
+/* ---------- constants & state ---------- */
+const DAY = 864e5, LS_KEY = 'pointDataV1', OLD_KEY = 'snapDataV11';
+const PALETTE = ['#8b7bff','#3ddc97','#ffb84d','#ff6b81','#4fc3f7','#f472b6','#b6e35a','#ff8a5b'];
+const LOGO = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>';
+const $ = id => document.getElementById(id);
+const ui = { tab:'home', range:30, statsAcc:null, chartMode:'change', pctRange:30, histAll:false, lastAcc:null, entryMode:'total' };
+
+/* ---------- date + number helpers ---------- */
+const pad = n => String(n).padStart(2,'0');
+function todayKey(){ const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function keyToNum(k){ const p = k.split('-').map(Number); return Math.round(Date.UTC(p[0],p[1]-1,p[2])/DAY); }
+function numToKey(n){ return new Date(n*DAY).toISOString().slice(0,10); }
+function todayNum(){ return keyToNum(todayKey()); }
+function fmtDay(n, year){ return new Date(n*DAY).toLocaleDateString('en-US',Object.assign({month:'short',day:'numeric',timeZone:'UTC'}, year?{year:'numeric'}:{})); }
+function agoStr(n){ const d = todayNum()-n; return d<=0?'today':d===1?'yesterday':d+' days ago'; }
+const fmt = n => Math.round(n).toLocaleString('en-US');
+function sgn(n){ const r = Math.round(n); return (r>0?'+':r<0?'−':'')+Math.abs(r).toLocaleString('en-US'); }
+function sgnPct(n){ return (n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(1)+'%'; }
+function cls(n){ const r = Math.round(n); return r>0?'pos':r<0?'neg':'flat'; }
+function compact(n){
+  const a = Math.abs(n), s = n<0?'−':'';
+  if(a>=1e9) return s+(a/1e9).toFixed(a>=1e10?0:1).replace(/\.0$/,'')+'B';
+  if(a>=1e6) return s+(a/1e6).toFixed(a>=1e7?0:1).replace(/\.0$/,'')+'M';
+  if(a>=1e3) return s+(a/1e3).toFixed(a>=1e4?0:1).replace(/\.0$/,'')+'K';
+  return s+Math.round(a*10)/10;
+}
+function parseNum(s){ return Number(String(s).replace(/[\s,]/g,'')); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const colorOf = i => PALETTE[i % PALETTE.length];
+function daysText(n){ return n>3650 ? '10+ years' : n===1 ? '1 day' : n+' days'; }
+
+/* ---------- data ---------- */
+function normalize(raw){
+  if(!raw || !Array.isArray(raw.accounts)) return null;
+  const accounts = raw.accounts.filter(a => a && typeof a.name==='string' && Array.isArray(a.history)).map(a => {
+    const map = new Map();
+    a.history.forEach(h => {
+      const d = String(h && h.date), p = Number(h && h.points);
+      if(/^\d{4}-\d{2}-\d{2}/.test(d) && Number.isFinite(p)) map.set(d.slice(0,10), { p, src:(h && typeof h.src==='string' && h.src) ? h.src : null, o:(h && h.o!=null && Number.isFinite(Number(h.o))) ? Number(h.o) : null });
+    });
+    const history = [...map.entries()].sort((x,y)=>x[0]<y[0]?-1:1).map(([k,v])=>{
+      const item = { date:k+'T00:00:00.000Z', points:v.p };
+      if(v.src){ item.src = v.src; if(v.o!=null) item.o = v.o; }
+      return item;
+    });
+    const lastTs = Number(a.last) || (history.length ? Date.parse(history[history.length-1].date) : 0);
+    return { id:(typeof a.id==='string' && a.id ? a.id : newId()), name:(a.name.trim().slice(0,40)||'Account'), goal:(Number(a.goal)>0?Number(a.goal):null), last:lastTs, history };
+  });
+  let m = parseInt(raw.mainAccountIndex,10); if(!(m>=0 && m<accounts.length)) m = 0;
+  let hi = parseInt(raw.heroAcc,10); if(!(hi>=0 && hi<accounts.length)) hi = null;
+  return { accounts, mainAccountIndex:m, lastBackup: typeof raw.lastBackup==='string' ? raw.lastBackup : null, imports:(Array.isArray(raw.imports)?raw.imports:[]).filter(x=>x && typeof x.id==='string' && typeof x.name==='string').map(x=>({id:x.id,name:x.name.slice(0,120),accId:typeof x.accId==='string'?x.accId:'',at:typeof x.at==='string'?x.at:''})), heroAcc:hi, heroSort: raw.heroSort==='most'?'most':'recent' };
+}
+function loadData(){
+  for(const key of [LS_KEY, OLD_KEY]){
+    try{ const raw = localStorage.getItem(key); if(raw){ const d = normalize(JSON.parse(raw)); if(d) return d; } }catch(e){}
+  }
+  return { accounts:[], mainAccountIndex:0, lastBackup:null, imports:[], heroAcc:null, heroSort:'recent' };
+}
+let data = loadData();
+function newId(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+function pruneImports(){
+  const live = new Set(); data.accounts.forEach(a=>a.history.forEach(h=>{ if(h.src) live.add(h.src); }));
+  data.imports = (data.imports||[]).filter(x=>live.has(x.id));
+}
+function countSrc(id){ return data.accounts.reduce((n,a)=>n+a.history.filter(h=>h.src===id).length,0); }
+function persist(){
+  pruneImports();
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
+  catch(e){ toast("Couldn't save. Export a backup now."); return false; }
+}
+const entries = a => a.history.map(h => ({ day:keyToNum(h.date.slice(0,10)), points:h.points, src:h.src }));
+function valueAt(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i].points; return null; }
+function entryAtOrBefore(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i]; return null; }
+
+function dailySeries(e){
+  const out = [];
+  for(let i=1;i<e.length;i++){
+    const gap = e[i].day-e[i-1].day; if(gap<=0) continue;
+    const g = (e[i].points-e[i-1].points)/gap;
+    for(let k=1;k<=gap;k++) out.push({ day:e[i-1].day+k, gain:g, est:gap>1 });
+  }
+  return out;
+}
+function statsFor(a, range){
+  const e = entries(a); if(!e.length) return null;
+  const last = e[e.length-1];
+  const base = range===Infinity ? e[0] : (entryAtOrBefore(e, last.day-range) || e[0]);
+  const days = Math.max(1, last.day-base.day);
+  const growth = last.points-base.points;
+  const all = dailySeries(e);
+  const inRange = all.filter(x => x.day>base.day);
+  let best=null, worst=null;
+  inRange.forEach(x => { if(!best||x.gain>best.gain) best=x; if(!worst||x.gain<worst.gain) worst=x; });
+  let streak = 0;
+  for(let i=all.length-1;i>=0 && all[i].gain>0;i--) streak++;
+  const b7 = entryAtOrBefore(e,last.day-7), b14 = entryAtOrBefore(e,last.day-14);
+  let g7=null, p7=null, wow=null;
+  if(e.length>1){
+    g7 = last.points-(b7?b7.points:e[0].points);
+    if(b7 && b14){ p7 = b7.points-b14.points; if(p7>0) wow = (g7-p7)/p7*100; }
+  }
+  return { e, last, base, days, growth, avg:e.length>1?growth/days:0, best, worst, streak, g7, p7, wow, n:e.length };
+}
+function avgBack(s, n){
+  if(s.n<2) return null;
+  const b = entryAtOrBefore(s.e, s.last.day-n) || s.e[0];
+  return (s.last.points-b.points)/Math.max(1, s.last.day-b.day);
+}
+function niceNext(v){
+  if(v<=0) return { target:100, step:100 };
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const step = v/mag<2 ? mag/2 : mag;
+  return { target:(Math.floor(v/step)+1)*step, step };
+}
+function goalInfo(a, s){
+  const latest = s.last.points, custom = a.goal && a.goal>latest;
+  let target, pct;
+  if(custom){ target = a.goal; const b = Math.min(s.e[0].points, latest); pct = target>b ? (latest-b)/(target-b) : 0; }
+  else { const n = niceNext(latest); target = n.target; pct = (latest-(target-n.step))/n.step; }
+  const rate = statsFor(a,30).avg, remaining = target-latest;
+  const eta = rate>0 ? Math.ceil(remaining/rate) : null;
+  return { target, custom, pct:Math.max(0,Math.min(1,pct)), remaining, eta, rate, reached: !!(a.goal && a.goal<=latest) };
+}
+function combined(){
+  let total = 0, growth = 0, any = false;
+  data.accounts.forEach(a => { const s = statsFor(a, ui.range); if(s){ any = true; total += s.last.points; growth += s.growth; } });
+  return any ? { total, growth } : null;
+}
+
+/* ---------- ui plumbing ---------- */
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 2200); }
+function openSheet(html, mount){
+  const root = $('sheetRoot');
+  root.innerHTML = '<div class="backdrop" data-a="closeSheet"></div><div class="sheet" role="dialog" aria-modal="true">'+'<div class="grab"></div>'+html+'</div>';
+  root.classList.add('open'); document.body.classList.add('noscroll');
+  if(mount) mount(root.querySelector('.sheet'));
+}
+function closeSheet(){ const r = $('sheetRoot'); r.classList.remove('open'); r.innerHTML=''; document.body.classList.remove('noscroll'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeSheet(); });
+function confirmSheet(title, text, label, onYes){
+  openSheet('<h2>'+esc(title)+'</h2><p class="note" style="color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:16px">'+esc(text)+'</p><button class="btn danger" id="cfYes">'+esc(label)+'</button><button class="btn sec" data-a="closeSheet">Cancel</button>',
+    s => s.querySelector('#cfYes').addEventListener('click', () => { closeSheet(); onYes(); }));
+}
+function setTab(t){
+  ui.tab = t;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id==='tab-'+t));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.v===t));
+  $('fab').classList.toggle('hide', t==='accounts');
+  render(); window.scrollTo(0,0);
+}
+function curStatsAcc(){
+  let i = ui.statsAcc==null ? data.mainAccountIndex : ui.statsAcc;
+  if(i>=data.accounts.length) i = data.mainAccountIndex;
+  return i;
+}
+const RANGES = [['7','7d',7],['30','30d',30],['90','90d',90],['all','All',Infinity]];
+function rangeChips(){
+  return '<div class="seg">'+RANGES.map(r => '<button data-a="range" data-v="'+r[0]+'" class="'+(ui.range===r[2]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>';
+}
+function accChips(sel){
+  return '<div class="chips">'+data.accounts.map((a,i) =>
+    '<button class="chip-btn '+(i===sel?'on':'')+'" data-a="pickAcc" data-v="'+i+'"><span class="dotc" style="background:'+colorOf(i)+'"></span>'+esc(a.name)+'</button>').join('')+'</div>';
+}
+function spark(a){
+  const e = entries(a); if(e.length<2) return '';
+  const end = e[e.length-1].day, pts = [];
+  for(let d=end-13; d<=end; d++){ const v = valueAt(e,d); if(v!=null) pts.push([d,v]); }
+  if(pts.length<2) return '';
+  const min = Math.min(...pts.map(p=>p[1])), max = Math.max(...pts.map(p=>p[1])), r = (max-min)||1;
+  const path = pts.map((p,i)=>(i?'L':'M')+((p[0]-(end-13))/13*96).toFixed(1)+' '+(30-(p[1]-min)/r*26).toFixed(1)).join('');
+  const up = pts[pts.length-1][1]-pts[0][1];
+  const c = up>0?'var(--pos)':up<0?'var(--neg)':'var(--muted)';
+  return '<svg class="spark" viewBox="0 0 96 34" preserveAspectRatio="none"><path d="'+path+'" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+/* ---------- HOME ---------- */
+function backupBanner(){
+  if(!data.accounts.length) return '';
+  const total = data.accounts.reduce((n,a)=>n+a.history.length,0); if(!total) return '';
+  const last = data.lastBackup ? new Date(data.lastBackup).getTime() : 0;
+  if(last && Date.now()-last < 14*DAY) return '';
+  return '<div class="banner"><span>'+(last?'Your last backup is over 2 weeks old.':'Your points live only in this browser.')+' Export a backup to keep them safe.</span><button data-a="export">Export</button></div>';
+}
+function heroIndex(){ const i = data.heroAcc; return (i!=null && i>=0 && i<data.accounts.length) ? i : data.mainAccountIndex; }
+function heroOrder(){
+  const most = data.heroSort==='most';
+  return data.accounts.map((a,i)=>i).sort((x,y)=>{
+    const A = data.accounts[x], B = data.accounts[y];
+    if(most && B.history.length!==A.history.length) return B.history.length-A.history.length;
+    if(B.last!==A.last) return B.last-A.last;
+    return x-y;
+  });
+}
+function heroSwitch(){
+  if(data.accounts.length<2) return '';
+  const cur = heroIndex();
+  return '<div class="chips"><button class="chip-btn sortbtn" data-a="heroSort">'+(data.heroSort==='most'?'Most used':'Recent')+' ⇅</button>'+
+    heroOrder().map(i=>'<button class="chip-btn '+(i===cur?'on':'')+'" data-a="heroPick" data-v="'+i+'"><span class="dotc" style="background:'+colorOf(i)+'"></span>'+esc(data.accounts[i].name)+'</button>').join('')+'</div>';
+}
+function heroHtml(i){
+  const a = data.accounts[i], s = statsFor(a,30);
+  const top = '<div class="hero-top">'+(i===data.mainAccountIndex?'<span class="badge">Main</span>':'')+'<span>'+esc(a.name)+'</span></div>';
+  if(!s) return '<section class="hero">'+top+'<div class="hero-num flat">0</div><p class="note" style="color:var(--muted);font-weight:600">No entries yet. Add your first total to start tracking.</p></section>';
+  const prev = s.e[s.e.length-2], d = prev ? s.last.points-prev.points : 0;
+  const g = goalInfo(a,s);
+  const etaTxt = g.eta!=null ? '~'+daysText(g.eta)+' at current pace' : 'no pace yet';
+  return '<section class="hero">'+top+
+    '<div class="hero-num">'+fmt(s.last.points)+'</div>'+
+    '<div class="hero-delta '+cls(d)+'">'+(prev?sgn(d):'—')+'<small>last entry · '+agoStr(s.last.day)+'</small></div>'+
+    '<div class="hero-stats"><div><div class="k">Last 7 days</div><div class="v '+(s.g7!=null?cls(s.g7):'flat')+'">'+(s.g7!=null?sgn(s.g7):'—')+'</div></div>'+
+    '<div><div class="k">Avg per day</div><div class="v '+cls(s.avg)+'">'+(s.n>1?sgn(s.avg):'—')+'</div></div>'+
+    '<div><div class="k">Gain streak</div><div class="v">'+s.streak+'d</div></div></div>'+
+    '<div class="goal"><div class="goal-row"><span>'+(g.custom?'Goal':'Next milestone')+' <b>'+fmt(g.target)+'</b></span><span>'+etaTxt+'</span></div>'+
+    '<div class="bar"><i style="width:'+(g.pct*100).toFixed(1)+'%"></i></div></div></section>';
+}
+function renderHome(){
+  const el = $('tab-home');
+  const dateStr = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  let h = '<header class="top"><div class="brand">'+LOGO+'<span>Point</span></div><div class="date">'+dateStr+'</div></header>';
+  if(!data.accounts.length){
+    h += '<div class="card"><h3>Track your first account</h3><p class="note">Name an account, then log its total points whenever you like. Point works out growth, pace and comparisons for you.</p>'+
+      '<input class="field mt" id="firstName" maxlength="40" placeholder="Account name, e.g. Main" autocomplete="off"><button class="btn" data-a="createFirst">Create account</button></div>'+
+      '<div class="card"><h3>Coming from Snap Stats?</h3><p class="note">Import your old backup on the Accounts tab and everything carries over.</p></div>';
+    el.innerHTML = h; return;
+  }
+  h += backupBanner() + heroSwitch() + heroHtml(heroIndex());
+  const c = combined();
+  if(c && data.accounts.length>1) h += '<div class="strip"><span>All accounts combined</span><b>'+fmt(c.total)+'</b></div>';
+  h += '<div class="sec-head"><h2>Accounts</h2><span>Tap for details</span></div>';
+  data.accounts.forEach((a,i) => {
+    const e = entries(a), last = e[e.length-1], prev = e[e.length-2];
+    const main = data.accounts[data.mainAccountIndex], mLast = entries(main).slice(-1)[0];
+    let sub = 'No entries yet';
+    if(last){
+      const d = prev ? last.points-prev.points : null;
+      sub = (d!=null?'<span class="pill '+cls(d)+'">'+sgn(d)+'</span> ':'')+agoStr(last.day);
+    }
+    let rel = '';
+    if(i!==data.mainAccountIndex && last && mLast && last.points>0) rel = ' · Main is '+(mLast.points/last.points*100).toFixed(1)+'%';
+    h += '<button class="acc-card" data-a="openStatsFor" data-v="'+i+'"><div class="nm"><span class="dotc" style="background:'+colorOf(i)+'"></span>'+esc(a.name)+(i===data.mainAccountIndex?' <span class="badge">Main</span>':'')+'</div>'+
+      '<div class="pts">'+(last?fmt(last.points):'—')+'</div><div class="sub">'+sub+rel+'</div>'+spark(a)+'</button>';
+  });
+  el.innerHTML = h;
+}
+
+/* ---------- STATS ---------- */
+function compareCard(idx){
+  const mi = data.accounts.findIndex((_,i)=>i===data.mainAccountIndex);
+  if(idx===mi) return '';
+  const M = data.accounts[mi], O = data.accounts[idx];
+  const sm = statsFor(M,30), so = statsFor(O,30); if(!sm||!so) return '';
+  const m = sm.last.points, o = so.last.points, rm = sm.avg, ro = so.avg;
+  const pct = o>0 ? (m/o*100).toFixed(2) : '—';
+  let line;
+  if(o>m){
+    line = rm>ro ? esc(M.name)+' closes the gap in about <b>'+daysText(Math.ceil((o-m)/(rm-ro)))+'</b> at current paces.' : 'The gap is widening. '+esc(O.name)+' is pulling away.';
+  } else if(m>o){
+    line = ro>rm ? esc(O.name)+' could catch '+esc(M.name)+' in about <b>'+daysText(Math.ceil((m-o)/(ro-rm)))+'</b>.' : esc(M.name)+"'s lead is growing.";
+  } else line = 'Level right now.';
+  return '<div class="card"><h3>'+esc(M.name)+' vs '+esc(O.name)+'</h3><div class="grid2 mt">'+
+    '<div class="tile"><div class="k">Main is</div><div class="v">'+pct+'%</div><div class="s">of '+esc(O.name)+'</div></div>'+
+    '<div class="tile"><div class="k">'+(o>=m?'Gap':'Lead')+'</div><div class="v">'+fmt(Math.abs(o-m))+'</div><div class="s">points</div></div></div>'+
+    '<p class="big">'+line+'</p><p class="note">Based on the last 30 days of pace.</p></div>';
+}
+function leaderboard(sel){
+  const rows = data.accounts.map((a,i)=>({i,a,s:statsFor(a,ui.range)})).filter(r=>r.s).sort((x,y)=>y.s.last.points-x.s.last.points);
+  if(rows.length<2) return '';
+  const max = rows[0].s.last.points||1, c = combined();
+  let h = '<div class="card"><h3>Leaderboard</h3><p class="note">Combined: <b style="color:var(--text)">'+fmt(c.total)+'</b> · <span class="'+cls(c.growth)+'">'+sgn(c.growth)+'</span> in range</p><div class="mt">';
+  rows.forEach((r,k) => {
+    h += '<button class="lb-row" data-a="pickAcc" data-v="'+r.i+'"><span class="lb-rank">'+(k+1)+'</span>'+
+      '<span class="lb-name"><span class="dotc" style="background:'+colorOf(r.i)+'"></span>'+esc(r.a.name)+'</span>'+
+      '<span class="lb-val">'+fmt(r.s.last.points)+' <span class="'+cls(r.s.growth)+'" style="font-size:.78rem">'+sgn(r.s.growth)+'</span></span>'+
+      '<span class="lb-bar"><i style="width:'+(r.s.last.points/max*100).toFixed(1)+'%;background:'+colorOf(r.i)+'"></i></span></button>';
+  });
+  return h+'</div></div>';
+}
+function heatmap(a, idx){
+  const e = entries(a); if(e.length<2) return '';
+  const series = dailySeries(e), map = new Map(series.map(x=>[x.day,x]));
+  const W = 16, end = Math.max(todayNum(), e[e.length-1].day);
+  const dow = (new Date(end*DAY).getUTCDay()+6)%7;
+  const start = end-dow-(W-1)*7;
+  const recent = series.filter(x=>x.day>=start);
+  const maxPos = Math.max(1, ...recent.map(x=>x.gain>0?x.gain:0));
+  const minNeg = Math.max(1, ...recent.map(x=>x.gain<0?-x.gain:0));
+  let cells = '';
+  for(let c=0;c<W;c++) for(let r=0;r<7;r++){
+    const d = start+c*7+r;
+    if(d>end){ cells += '<button class="void" tabindex="-1" aria-hidden="true"></button>'; continue; }
+    const x = map.get(d);
+    if(!x){ cells += '<button class="none" data-a="heatTip" data-tip="'+fmtDay(d)+': no data"></button>'; continue; }
+    let bg;
+    if(x.gain>0) bg = 'color-mix(in srgb, '+colorOf(idx)+' '+Math.round(22+Math.min(1,x.gain/maxPos)*78)+'%, transparent)';
+    else if(x.gain<0) bg = 'color-mix(in srgb, var(--neg) '+Math.round(22+Math.min(1,-x.gain/minNeg)*78)+'%, transparent)';
+    else bg = 'var(--line)';
+    cells += '<button style="background:'+bg+'" data-a="heatTip" data-tip="'+fmtDay(d)+': '+sgn(x.gain)+(x.est?' (est.)':'')+'"></button>';
+  }
+  return '<div class="card"><h3>Activity</h3><p class="note">Daily gain over the last 16 weeks. Days between entries share the change evenly.</p>'+
+    '<div class="heat">'+cells+'</div><div class="heat-legend">Less <i style="background:color-mix(in srgb,'+colorOf(idx)+' 25%,transparent)"></i><i style="background:color-mix(in srgb,'+colorOf(idx)+' 60%,transparent)"></i><i style="background:'+colorOf(idx)+'"></i> More</div></div>';
+}
+function historyCard(a, idx){
+  const e = entries(a); if(!e.length) return '';
+  const rows = e.map((x,i)=>({x,d:i?x.points-e[i-1].points:null})).reverse();
+  const shown = ui.histAll ? rows : rows.slice(0,10);
+  let h = '<div class="card"><h3>History</h3><p class="note">Tap an entry to edit or delete it.</p><div class="mt">';
+  shown.forEach(r => {
+    h += '<button class="hist" data-a="editEntry" data-acc="'+idx+'" data-day="'+r.x.day+'"><span class="p">'+fmt(r.x.points)+'</span><span class="d">'+fmtDay(r.x.day,true)+(r.x.src?' · from file':'')+'</span>'+
+      '<span class="c '+(r.d==null?'flat':cls(r.d))+'">'+(r.d==null?'First entry':sgn(r.d))+'</span></button>';
+  });
+  h += '</div>';
+  if(rows.length>10) h += '<button class="btn sec mt" data-a="histMore">'+(ui.histAll?'Show fewer':'Show all '+rows.length+' entries')+'</button>';
+  h += '<button class="btn sec mt" data-a="importFile" data-v="'+idx+'">Import entries from a file</button>';
+  return h+'</div>';
+}
+function renderStats(){
+  const el = $('tab-stats');
+  let h = '<h1 class="page-title">Stats</h1>';
+  if(!data.accounts.length){ el.innerHTML = h+'<div class="card"><p class="empty">No accounts yet. Create one on the Home tab.</p></div>'; return; }
+  const idx = curStatsAcc(), a = data.accounts[idx], s = statsFor(a, ui.range);
+  h += rangeChips()+accChips(idx);
+  if(!s){
+    el.innerHTML = h+'<div class="card"><p class="empty">No entries for '+esc(a.name)+' yet.<br>Add a total to see stats.</p><button class="btn" data-a="add" data-v="'+idx+'">Add first entry</button><button class="btn sec" data-a="importFile" data-v="'+idx+'">Import entries from a file</button></div>';
+    return;
+  }
+  const rl = ui.range===Infinity ? 'All time' : 'Last '+ui.range+' days';
+  const multi = s.n>1;
+  const av = [3,7,30,90].map(n => { const v = avgBack(s,n); return '<div><b class="'+(v==null?'flat':cls(v))+'">'+(v==null?'—':sgn(v))+'</b><span>'+n+' days</span></div>'; }).join('');
+  h += '<div class="grid2">'+
+    '<div class="tile"><div class="k">Latest total</div><div class="v">'+fmt(s.last.points)+'</div><div class="s">'+agoStr(s.last.day)+'</div></div>'+
+    '<div class="tile"><div class="k">Growth</div><div class="v '+(multi?cls(s.growth):'flat')+'">'+(multi?sgn(s.growth):'—')+'</div><div class="s">'+rl+(multi?' · '+sgn(s.avg)+'/day':'')+'</div></div>'+
+    '<div class="tile" style="grid-column:1 / -1"><div class="k">Average points per day, looking back</div><div class="avg4">'+av+'</div></div>'+
+    '<div class="tile"><div class="k">This week vs last</div><div class="v '+(s.wow!=null?cls(s.wow):'flat')+'">'+(s.wow!=null?sgnPct(s.wow):'—')+'</div><div class="s">'+(s.wow!=null?sgn(s.g7)+' vs '+sgn(s.p7):'needs 2 weeks of data')+'</div></div>'+
+    '<div class="tile"><div class="k">Gain streak</div><div class="v">'+s.streak+(s.streak===1?' day':' days')+'</div><div class="s">in a row</div></div>'+
+    '<div class="tile"><div class="k">Best day</div><div class="v '+(s.best?cls(s.best.gain):'flat')+'">'+(s.best?sgn(s.best.gain):'—')+'</div><div class="s">'+(s.best?fmtDay(s.best.day)+(s.best.est?' (est.)':''):'no data')+'</div></div>'+
+    '<div class="tile"><div class="k">Worst day</div><div class="v '+(s.worst?cls(s.worst.gain):'flat')+'">'+(s.worst?sgn(s.worst.gain):'—')+'</div><div class="s">'+(s.worst?fmtDay(s.worst.day)+(s.worst.est?' (est.)':''):'no data')+'</div></div></div>';
+  const g = goalInfo(a,s);
+  h += '<div class="card"><h3>'+(g.custom?'Goal':'Next milestone')+': '+fmt(g.target)+'</h3><div class="bar mt"><i style="width:'+(g.pct*100).toFixed(1)+'%"></i></div>'+
+    '<p class="big">'+fmt(g.remaining)+' to go'+(g.eta!=null?' · about <b>'+daysText(g.eta)+'</b> ('+fmtDay(s.last.day+g.eta,true)+')':'')+'</p>'+
+    '<p class="note">'+(g.eta!=null?'Based on your 30-day pace of '+sgn(g.rate)+' per day.':'Needs a positive pace over the last 30 days to estimate.')+(g.reached?' Your custom goal is reached, so this shows the next milestone.':'')+'</p>'+
+    '<button class="btn sec mt" data-a="openAccount" data-v="'+idx+'">'+(a.goal?'Change goal':'Set your own goal')+'</button></div>';
+  h += compareCard(idx) + leaderboard(idx) + heatmap(a,idx) + historyCard(a,idx);
+  el.innerHTML = h;
+}
+
+/* ---------- CHARTS ---------- */
+const RANGES3 = [['1','1d',1],['7','7d',7],['30','30d',30],['365','1y',365],['all','All',Infinity]];
+function chartWindow(range){
+  const all = data.accounts.flatMap(entries); if(!all.length) return null;
+  const end = Math.max(...all.map(e=>e.day)), first = Math.min(...all.map(e=>e.day));
+  const r = range===undefined ? ui.range : range;
+  return [ r===Infinity ? first : Math.max(first, end-r), end ];
+}
+function buildChangeSeries(win){
+  const [start,end] = win, out = [];
+  data.accounts.forEach((a,i) => {
+    const e = entries(a), pts = [];
+    for(let k=1;k<e.length;k++) if(e[k].day>=start && e[k].day<=end) pts.push({ x:e[k].day, y:e[k].points-e[k-1].points });
+    if(pts.length) out.push({ name:a.name, color:colorOf(i), pts });
+  });
+  return out;
+}
+function buildTotalSeries(win){
+  const [start,end] = win, out = [];
+  data.accounts.forEach((a,i) => {
+    const e = entries(a); if(!e.length) return;
+    let pts = [];
+    const b = valueAt(e,start);
+    if(b!=null && !e.some(x=>x.day===start)) pts.push({x:start,y:b});
+    e.forEach(x => { if(x.day>=start && x.day<=end) pts.push({x:x.day,y:x.points}); });
+    const last = pts[pts.length-1];
+    if(last && last.x<end) pts.push({x:end,y:last.y});
+    if(!pts.length) return;
+    if(ui.chartMode==='pct'){
+      const base = pts[0].y; if(!(base>0)) return;
+      pts = pts.map(p=>({x:p.x,y:(p.y/base-1)*100}));
+    }
+    out.push({ name:a.name, color:colorOf(i), pts });
+  });
+  return out;
+}
+function buildGainSeries(win){
+  const [start,end] = win, out = [];
+  data.accounts.forEach((a,i) => {
+    const pts = dailySeries(entries(a)).filter(x=>x.day>=start&&x.day<=end).map(x=>({x:x.day,y:x.gain}));
+    if(pts.length) out.push({ name:a.name, color:colorOf(i), pts });
+  });
+  return out;
+}
+function buildPctSeries(win){
+  const [start,end] = win, out = [];
+  if(data.accounts.length<2) return out;
+  const M = entries(data.accounts[data.mainAccountIndex]); if(!M.length) return out;
+  const stepDays = Math.max(1, Math.ceil((end-start)/120));
+  data.accounts.forEach((a,i) => {
+    if(i===data.mainAccountIndex) return;
+    const e = entries(a), pts = [];
+    for(let d=start; d<=end; d+=stepDays){
+      const m = valueAt(M,d), o = valueAt(e,d);
+      if(m!=null && o!=null && o>0) pts.push({x:d,y:m/o*100});
+    }
+    const lastD = end, m2 = valueAt(M,lastD), o2 = valueAt(e,lastD);
+    if(m2!=null && o2>0 && (!pts.length || pts[pts.length-1].x!==lastD)) pts.push({x:lastD,y:m2/o2*100});
+    if(pts.length) out.push({ name:'Main vs '+a.name, color:colorOf(i), pts });
+  });
+  return out;
+}
+function chartCard(id, title, series, extra, opts){
+  const legend = series.map(s=>'<span><i class="dotc" style="background:'+s.color+'"></i>'+esc(s.name)+'</span>').join('');
+  const body = series.length ? '<div class="legend">'+legend+'</div><div class="chart-wrap"><canvas id="'+id+'"></canvas><div class="tip" id="tip-'+id+'"></div></div>' : '<p class="empty">'+(opts.emptyMsg||'Add entries to see this chart.')+'</p>';
+  return '<div class="card"><h3>'+title+'</h3>'+(extra||'')+body+'</div>';
+}
+const chartStore = {};
+function renderCharts(){
+  const el = $('tab-charts');
+  let h = '<h1 class="page-title">Charts</h1>';
+  const win = chartWindow();
+  if(!win){ el.innerHTML = h+'<div class="card"><p class="empty">Nothing to chart yet.<br>Add a few entries first.</p></div>'; return; }
+  h += rangeChips()+'<p class="note" style="margin:-4px 2px 10px;color:var(--muted);font-size:.8rem;font-weight:600">This range applies to the first two charts.</p>';
+  const m = ui.chartMode;
+  const mode = '<div class="seg" style="margin:8px 0 0"><button data-a="chartMode" data-v="change" class="'+(m==='change'?'on':'')+'">Change</button><button data-a="chartMode" data-v="total" class="'+(m==='total'?'on':'')+'">Total</button><button data-a="chartMode" data-v="pct" class="'+(m==='pct'?'on':'')+'">Growth %</button></div>';
+  const s1 = m==='change' ? buildChangeSeries(win) : buildTotalSeries(win);
+  const s2 = buildGainSeries(win);
+  const win3 = chartWindow(ui.pctRange), s3 = buildPctSeries(win3);
+  chartStore.c1 = m==='change' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true }
+    : m==='pct' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v)+'%', tipFmt:sgnPct, area:s1.length===1 }
+    : { series:s1, yFmt:compact, tipFmt:fmt, area:s1.length===1 };
+  chartStore.c2 = { series:s2, yFmt:v=>compact(v), tipFmt:sgn, zero:true };
+  chartStore.c3 = { series:s3, yFmt:v=>v.toFixed(v>=100?0:1)+'%', tipFmt:v=>v.toFixed(2)+'%' };
+  const t1 = m==='change' ? 'Point change' : m==='pct' ? 'Growth since start of range' : 'Total points';
+  const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Difference from the previous entry. If you logged 100 yesterday and 120 today, it shows 20.</p>':'');
+  h += chartCard('c1', t1, s1, x1, {emptyMsg:'Needs at least two entries in an account.'});
+  h += chartCard('c2', 'Daily gain', s2, '<p class="note">Days between entries share the change evenly.</p>', {});
+  const seg3 = '<div class="seg" style="margin:8px 0 0">'+RANGES3.map(r=>'<button data-a="pctRange" data-v="'+r[0]+'" class="'+(ui.pctRange===r[2]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>';
+  h += chartCard('c3', 'Main as % of each account', s3, seg3, {emptyMsg:data.accounts.length<2?'Add a second account to compare percentages.':'No data in this range.'});
+  el.innerHTML = h;
+}
+function niceTicks(min,max,n){
+  if(min===max){ max = min+1; min = min-1 < 0 && min>=0 ? 0 : min-1; }
+  const raw = (max-min)/n, mag = Math.pow(10,Math.floor(Math.log10(raw))), nm = raw/mag;
+  const step = (nm<=1?1:nm<=2?2:nm<=5?5:10)*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, ticks = [];
+  for(let v=lo; v<=hi+step/2; v+=step) ticks.push(v);
+  return { lo, hi, ticks };
+}
+function drawChart(id, hoverX){
+  const canvas = $(id), cfg = chartStore[id]; if(!canvas||!cfg||!cfg.series.length) return;
+  const w = canvas.clientWidth, h = canvas.clientHeight; if(!w) return;
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
+  const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const cs = getComputedStyle(document.documentElement), muted = cs.getPropertyValue('--muted').trim(), line = cs.getPropertyValue('--line').trim();
+  const ys = cfg.series.flatMap(s=>s.pts.map(p=>p.y)), xs = cfg.series.flatMap(s=>s.pts.map(p=>p.x));
+  let min = Math.min(...ys), max = Math.max(...ys);
+  if(cfg.zero){ min = Math.min(min,0); max = Math.max(max,0); }
+  const T = niceTicks(min,max,4);
+  let xMin = Math.min(...xs), xMax = Math.max(...xs); if(xMin===xMax){ xMin -= 1; xMax += 1; }
+  ctx.font = '600 11px Manrope, system-ui, sans-serif';
+  const labels = T.ticks.map(cfg.yFmt);
+  const padL = Math.max(...labels.map(l=>ctx.measureText(l).width))+14, padR = 12, padT = 12, padB = 24;
+  const pw = w-padL-padR, ph = h-padT-padB;
+  const X = x => padL+(x-xMin)/(xMax-xMin)*pw, Y = y => padT+(1-(y-T.lo)/((T.hi-T.lo)||1))*ph;
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+  T.ticks.forEach((t,i) => {
+    const y = Y(t); ctx.strokeStyle = (cfg.zero && t===0) ? muted : line; ctx.globalAlpha = (cfg.zero && t===0) ? .5 : 1; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = muted; ctx.fillText(labels[i], padL-8, y);
+  });
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center'; ctx.fillStyle = muted;
+  const span = xMax-xMin;
+  const nx = Math.max(1, Math.min(w<380?3:4, Math.floor(pw/64), Math.floor(span)));
+  const seen = new Set();
+  for(let i=0;i<=nx;i++){
+    const d = Math.round(xMin+span*i/nx); if(seen.has(d)) continue; seen.add(d);
+    ctx.textAlign = i===0?'left':i===nx?'right':'center';
+    ctx.fillText(fmtDay(d), X(d)+(i===0?-2:i===nx?2:0), h-6);
+  }
+  cfg.series.forEach(s => {
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2.4; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if(cfg.area && s.pts.length>1){
+      const g = ctx.createLinearGradient(0,padT,0,padT+ph); g.addColorStop(0,s.color+'55'); g.addColorStop(1,s.color+'00');
+      ctx.beginPath(); s.pts.forEach((p,i)=>i?ctx.lineTo(X(p.x),Y(p.y)):ctx.moveTo(X(p.x),Y(p.y)));
+      ctx.lineTo(X(s.pts[s.pts.length-1].x),padT+ph); ctx.lineTo(X(s.pts[0].x),padT+ph); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    }
+    ctx.beginPath(); s.pts.forEach((p,i)=>i?ctx.lineTo(X(p.x),Y(p.y)):ctx.moveTo(X(p.x),Y(p.y))); ctx.stroke();
+    if(s.pts.length<=32 || s.pts.length===1) s.pts.forEach(p => { ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),2.8,0,7); ctx.fillStyle = s.color; ctx.fill(); });
+  });
+  if(hoverX!=null){
+    ctx.strokeStyle = muted; ctx.globalAlpha = .6; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(X(hoverX),padT); ctx.lineTo(X(hoverX),padT+ph); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    cfg.series.forEach(s => { const p = s.pts.reduce((b,q)=>Math.abs(q.x-hoverX)<Math.abs(b.x-hoverX)?q:b); ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),5,0,7); ctx.fillStyle = s.color; ctx.fill(); ctx.strokeStyle = cs.getPropertyValue('--surface').trim(); ctx.lineWidth = 2; ctx.stroke(); });
+  }
+  canvas._geo = { padL, pw, xMin, xMax };
+}
+function attachChartEvents(){
+  ['c1','c2','c3'].forEach(id => {
+    const c = $(id); if(!c) return;
+    const tip = $('tip-'+id);
+    const move = e => {
+      const g = c._geo, cfg = chartStore[id]; if(!g) return;
+      const r = c.getBoundingClientRect(), px = e.clientX-r.left;
+      const xv = g.xMin+(px-g.padL)/g.pw*(g.xMax-g.xMin);
+      let snap = null, bd = Infinity;
+      cfg.series.forEach(s => s.pts.forEach(p => { const d = Math.abs(p.x-xv); if(d<bd){ bd = d; snap = p.x; } }));
+      if(snap==null) return;
+      drawChart(id, snap);
+      let html = '<div class="td">'+fmtDay(snap,true)+'</div>';
+      cfg.series.forEach(s => { const p = s.pts.reduce((b,q)=>Math.abs(q.x-snap)<Math.abs(b.x-snap)?q:b); html += '<div class="tr"><span><i class="dotc" style="background:'+s.color+';display:inline-block;margin-right:6px"></i>'+esc(s.name)+'</span><b>'+cfg.tipFmt(p.y)+'</b></div>'; });
+      tip.innerHTML = html; tip.classList.add('on');
+      const sx = g.padL+(snap-g.xMin)/(g.xMax-g.xMin)*g.pw, tw = tip.offsetWidth;
+      tip.style.left = Math.max(0,Math.min(r.width-tw, sx-tw/2))+'px';
+      tip.style.top = '4px';
+    };
+    c.addEventListener('pointerdown', move);
+    c.addEventListener('pointermove', move);
+    c.addEventListener('pointerleave', e => { if(e.pointerType==='mouse'){ tip.classList.remove('on'); drawChart(id); } });
+  });
+}
+document.addEventListener('pointerdown', e => {
+  if(!e.target.closest('canvas')) document.querySelectorAll('.tip.on').forEach(t => { t.classList.remove('on'); });
+  if(!e.target.closest('canvas') && ui.tab==='charts') ['c1','c2','c3'].forEach(id => drawChart(id));
+});
+function drawCharts(){ if(ui.tab!=='charts') return; ['c1','c2','c3'].forEach(id => drawChart(id)); attachChartEvents(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 120); });
+
+/* ---------- ACCOUNTS ---------- */
+function renderAccounts(){
+  const el = $('tab-accounts');
+  let h = '<h1 class="page-title">Accounts</h1>';
+  h += '<div class="card" style="margin-top:0"><h3>Add account</h3><div class="row mt"><input class="field" id="newName" maxlength="40" placeholder="Account name" autocomplete="off"><button class="chip-btn on" data-a="createNew" style="padding:14px 18px">Add</button></div></div>';
+  if(data.accounts.length) h += '<div class="sec-head"><h2>Your accounts</h2><span>Tap to edit</span></div>';
+  data.accounts.forEach((a,i) => {
+    const e = entries(a), last = e[e.length-1];
+    h += '<button class="acct-item" data-a="openAccount" data-v="'+i+'"><span class="dotc" style="background:'+colorOf(i)+'"></span><span class="grow"><div class="n">'+esc(a.name)+'</div><div class="m">'+e.length+(e.length===1?' entry':' entries')+(last?' · '+fmt(last.points)+' pts':'')+'</div></span>'+(i===data.mainAccountIndex?'<span class="badge">Main</span>':'')+'</button>';
+  });
+  h += '<div class="card"><h3>Import entries from a file</h3><p class="note">Add many dates at once from Excel (.xlsx), CSV or a text file with two columns: date and points.</p><button class="btn mt" data-a="importFile">Choose file and account</button></div>';
+  const imps = data.imports||[];
+  if(imps.length){
+    h += '<div class="sec-head"><h2>Imported files</h2><span>Tap to remove</span></div>';
+    imps.forEach(im => {
+      const acc = data.accounts.find(x=>x.id===im.accId), when = im.at ? new Date(im.at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+      h += '<button class="acct-item" data-a="openImportRec" data-v="'+esc(im.id)+'"><span class="grow"><div class="n">'+esc(im.name)+'</div><div class="m">'+countSrc(im.id)+' entries · '+esc(acc?acc.name:'Deleted account')+(when?' · '+when:'')+'</div></span></button>';
+    });
+  }
+  const lb = data.lastBackup ? new Date(data.lastBackup).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Never';
+  h += '<div class="card"><h3>Backup</h3><p class="note">Your data is stored in this browser only. Last export: <b style="color:var(--text)">'+lb+'</b>.</p>'+
+    '<button class="btn mt" data-a="export">Export backup</button><button class="btn sec" data-a="importClick">Import backup</button>'+
+    '<p class="note mt">Backups from Snap Stats Pro can be imported here.</p></div>';
+  const ver = window.PointAndroid && PointAndroid.getVersion ? PointAndroid.getVersion() : '';
+  h += '<div class="card"><h3>Updates</h3><p class="note">'+(ver ? 'Point '+esc(ver)+' for Android.' : 'Point web app.')+' Updates keep your data.</p>'+
+    '<button class="btn sec mt" data-a="checkUpdate">Check for updates</button></div>';
+  el.innerHTML = h;
+}
+function addAccountFrom(id){
+  const inp = $(id); const name = inp ? inp.value.trim() : '';
+  if(!name){ toast('Enter an account name'); return; }
+  if(data.accounts.some(a=>a.name.toLowerCase()===name.toLowerCase())){ toast('That name is already used'); return; }
+  data.accounts.push({ id:newId(), name:name.slice(0,40), goal:null, last:0, history:[] });
+  if(data.accounts.length===1) data.mainAccountIndex = 0;
+  persist(); render(); toast('Account created');
+}
+function openAccountSheet(i){
+  const a = data.accounts[i]; if(!a) return;
+  const isMain = i===data.mainAccountIndex;
+  openSheet('<h2>Edit account</h2><label class="lbl" for="acName">Name</label><input class="field" id="acName" maxlength="40" value="'+esc(a.name)+'">'+
+    '<label class="lbl" for="acGoal">Goal (optional)</label><input class="field" id="acGoal" inputmode="numeric" placeholder="Leave empty for automatic milestones" value="'+(a.goal?fmt(a.goal):'')+'">'+
+    '<button class="btn" id="acSave">Save changes</button>'+
+    (isMain?'':'<button class="btn sec" id="acMain">Make this the main account</button>')+
+    '<button class="btn danger" id="acDel">Delete account</button>',
+  s => {
+    s.querySelector('#acSave').onclick = () => {
+      const name = s.querySelector('#acName').value.trim(); if(!name){ toast('Name can’t be empty'); return; }
+      const gv = s.querySelector('#acGoal').value.trim(); const g = gv?Math.round(parseNum(gv)):null;
+      if(gv && !(g>0)){ toast('Goal must be a positive number'); return; }
+      a.name = name.slice(0,40); a.goal = g; persist(); closeSheet(); render(); toast('Saved');
+    };
+    const m = s.querySelector('#acMain'); if(m) m.onclick = () => { data.mainAccountIndex = i; persist(); closeSheet(); render(); toast(a.name+' is now the main account'); };
+    s.querySelector('#acDel').onclick = () => confirmSheet('Delete "'+a.name+'"?','This permanently removes the account and all '+a.history.length+' of its entries. Export a backup first if you might need them.','Delete account', () => {
+      data.accounts.splice(i,1);
+      if(data.mainAccountIndex===i) data.mainAccountIndex = 0; else if(data.mainAccountIndex>i) data.mainAccountIndex--;
+      if(data.heroAcc===i) data.heroAcc = null; else if(data.heroAcc>i) data.heroAcc--;
+      ui.statsAcc = null; ui.lastAcc = null; persist(); render(); toast('Account deleted');
+    });
+  });
+}
+
+/* ---------- ENTRIES ---------- */
+function setEntry(ai, key, points){
+  const a = data.accounts[ai], iso = key+'T00:00:00.000Z';
+  const ex = a.history.find(h=>h.date.slice(0,10)===key);
+  if(ex){ ex.points = points; delete ex.src; delete ex.o; } else a.history.push({ date:iso, points });
+  a.history.sort((x,y)=>x.date<y.date?-1:1);
+}
+function openEntry(pref){
+  if(!data.accounts.length){ toast('Create an account first'); setTab('home'); return; }
+  let acc = pref!=null ? pref : (ui.lastAcc!=null && ui.lastAcc<data.accounts.length ? ui.lastAcc : (ui.tab==='stats' ? curStatsAcc() : data.mainAccountIndex));
+  let mode = ui.entryMode;
+  openSheet('<h2>Add points</h2>'+
+    '<div class="chips" id="enChips"></div>'+
+    '<div class="seg"><button data-m="total">Set total</button><button data-m="add">Add to last total</button></div>'+
+    '<input class="field bigfield" id="enVal" inputmode="numeric" placeholder="0" autocomplete="off">'+
+    '<div class="chips" id="enQuick" style="display:none">'+[100,500,1000,5000].map(n=>'<button class="chip-btn" data-q="'+n+'">+'+fmt(n)+'</button>').join('')+'</div>'+
+    '<label class="lbl" for="enDate">Date</label><div class="row" style="margin-bottom:12px"><input class="field" type="date" id="enDate" style="flex:1"><button class="chip-btn" id="enToday">Today</button><button class="chip-btn" id="enYday">Yesterday</button></div>'+
+    '<div class="prev" id="enPrev"></div><button class="btn" id="enSave">Save entry</button>',
+  s => {
+    const q = x => s.querySelector(x), date = q('#enDate'), val = q('#enVal'), prev = q('#enPrev');
+    date.value = todayKey();
+    const setDate = off => { const d = new Date(); d.setDate(d.getDate()-off); date.value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); refresh(); };
+    function chips(){ q('#enChips').innerHTML = data.accounts.map((a,i)=>'<button class="chip-btn '+(i===acc?'on':'')+'" data-i="'+i+'"><span class="dotc" style="background:'+colorOf(i)+'"></span>'+esc(a.name)+'</button>').join(''); }
+    function compute(){
+      const key = date.value; if(!key) return null;
+      const e = entries(data.accounts[acc]), day = keyToNum(key);
+      const before = e.filter(x=>x.day<day), pv = before[before.length-1], ex = e.find(x=>x.day===day);
+      const raw = val.value.trim(), v = raw===''?NaN:parseNum(raw);
+      const total = isNaN(v) ? null : (mode==='add' ? (pv?pv.points:0)+v : v);
+      return { day, pv, ex, total };
+    }
+    function refresh(){
+      s.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.m===mode));
+      q('#enQuick').style.display = mode==='add' ? 'flex' : 'none';
+      val.placeholder = mode==='add' ? 'Points to add' : 'Total points';
+      const c = compute(); let html = '', warn = false;
+      if(!c) html = 'Pick a date.';
+      else if(c.total==null) html = c.pv ? 'Previous total: <b>'+fmt(c.pv.points)+'</b> on '+fmtDay(c.pv.day,true)+'.' : 'This will be the first entry.';
+      else {
+        html = 'New total <b>'+fmt(c.total)+'</b>';
+        if(c.pv){ const d = c.total-c.pv.points; html += ' · <b>'+sgn(d)+'</b> since '+fmtDay(c.pv.day,true); if(d<0) warn = true; }
+        if(c.ex) html += '<br>Replaces the '+fmt(c.ex.points)+' saved for this date.';
+        if(warn) html += '<br>Lower than the previous entry. Check the number.';
+      }
+      prev.innerHTML = html; prev.classList.toggle('warn', warn);
+    }
+    chips(); refresh();
+    q('#enChips').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if(!b) return; acc = Number(b.dataset.i); chips(); refresh(); });
+    s.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; ui.entryMode = mode; refresh(); }));
+    q('#enQuick').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if(!b) return; const cur = parseNum(val.value)||0; val.value = String(cur+Number(b.dataset.q)); refresh(); });
+    val.addEventListener('input', refresh); date.addEventListener('change', refresh);
+    q('#enToday').onclick = () => setDate(0); q('#enYday').onclick = () => setDate(1);
+    q('#enSave').onclick = () => {
+      const c = compute();
+      if(!c){ toast('Pick a date'); return; }
+      if(c.total==null){ toast('Enter a number'); return; }
+      if(!(c.total>=0)){ toast('Points can’t be negative'); return; }
+      setEntry(acc, date.value, Math.round(c.total)); data.accounts[acc].last = Date.now(); ui.lastAcc = acc; ui.statsAcc = acc;
+      persist(); closeSheet(); render(); toast('Saved '+fmt(c.total)+' for '+data.accounts[acc].name);
+    };
+    setTimeout(()=>val.focus(), 250);
+  });
+}
+function openEditEntry(ai, day){
+  const a = data.accounts[ai]; if(!a) return;
+  const key = numToKey(day), ent = a.history.find(h=>h.date.slice(0,10)===key); if(!ent) return;
+  openSheet('<h2>Edit entry</h2><label class="lbl" for="edDate">Date</label><input class="field" type="date" id="edDate" value="'+key+'">'+
+    '<label class="lbl" for="edVal">Total points</label><input class="field" id="edVal" inputmode="numeric" value="'+ent.points+'">'+
+    '<button class="btn" id="edSave">Save changes</button><button class="btn danger" id="edDel">Delete entry</button>',
+  s => {
+    s.querySelector('#edSave').onclick = () => {
+      const nk = s.querySelector('#edDate').value, v = Math.round(parseNum(s.querySelector('#edVal').value));
+      if(!nk){ toast('Pick a date'); return; }
+      if(!(v>=0)){ toast('Enter a valid number'); return; }
+      if(nk!==key && a.history.some(h=>h.date.slice(0,10)===nk)){ toast('Another entry already uses that date'); return; }
+      a.history = a.history.filter(h=>h!==ent); setEntry(ai, nk, v);
+      persist(); closeSheet(); render(); toast('Entry updated');
+    };
+    s.querySelector('#edDel').onclick = () => confirmSheet('Delete this entry?', fmt(ent.points)+' on '+fmtDay(day,true)+' will be removed.', 'Delete entry', () => {
+      a.history = a.history.filter(h=>h!==ent); persist(); render(); toast('Entry deleted');
+    });
+  });
+}
+
+/* ---------- BACKUP ---------- */
+function exportData(){
+  data.lastBackup = new Date().toISOString(); persist();
+  const name = 'point-backup-'+todayKey()+'.json';
+  // Android app: WebView can't download blob: URLs, so hand the file to the native side.
+  if(window.PointAndroid){ PointAndroid.saveFile(name, JSON.stringify(data,null,2)); render(); return; }
+  const blob = new Blob([JSON.stringify(data,null,2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  toast('Backup exported'); render();
+}
+$('importFile').addEventListener('change', ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    let d = null; try{ d = normalize(JSON.parse(r.result)); }catch(e){}
+    if(!d){ toast('That file isn’t a valid Point or Snap Stats backup'); return; }
+    const entriesCount = d.accounts.reduce((n,a)=>n+a.history.length,0);
+    confirmSheet('Replace your data?', 'The backup has '+d.accounts.length+(d.accounts.length===1?' account':' accounts')+' and '+entriesCount+' entries. Your current data ('+data.accounts.length+' accounts) will be replaced.', 'Replace with backup', () => {
+      data = d; ui.statsAcc = null; ui.lastAcc = null; persist(); render(); toast('Backup imported');
+    });
+  };
+  r.onerror = () => toast('Couldn’t read that file');
+  r.readAsText(f);
+});
+
+/* ---------- FILE IMPORT (Excel / CSV / TXT) ---------- */
+function parseValue(str){
+  if(str==null) return null;
+  let s = String(str).replace(/[\s\u00a0'’"]/g,'').replace(/[^\d.,\-eE+]/g,''); if(!s) return null;
+  if(/[eE]/.test(s)){ const n = Number(s); return Number.isFinite(n)?n:null; }
+  const hasC = s.includes(','), hasD = s.includes('.'); let t = s;
+  if(hasC && hasD){ t = s.lastIndexOf(',')>s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,''); }
+  else if(hasC){ t = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g,'') : s.replace(',','.'); }
+  else if(hasD){ t = /^-?\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g,'') : s; }
+  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : null;
+}
+function parseDateStr(raw, order){
+  const s = String(raw==null?'':raw).trim().replace(/^["']|["']$/g,''); if(!s) return null;
+  let y, m, d, x;
+  if(/^\d{5}(\.\d+)?$/.test(s)){ const n = Math.floor(Number(s)); if(n<20000||n>80000) return null; return numToKey(n-25569); }
+  if((x = s.match(/^(\d{4})(\d{2})(\d{2})$/))){ y=+x[1]; m=+x[2]; d=+x[3]; }
+  else if((x = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?!\d)/))){ y=+x[1]; m=+x[2]; d=+x[3]; }
+  else if((x = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4}|\d{2})(?!\d)/))){
+    const a=+x[1], b=+x[2]; y=+x[3]; if(y<100) y+=2000;
+    if(order==='mdy'){ m=a; d=b; } else { d=a; m=b; }
+  } else return null;
+  if(m<1||m>12||d<1||d>31||y<1970||y>2100) return null;
+  const t = new Date(Date.UTC(y,m-1,d)); if(t.getUTCMonth()!==m-1) return null;
+  return y+'-'+pad(m)+'-'+pad(d);
+}
+function detectOrder(rawDates){
+  let dm=false, md=false, any=false;
+  rawDates.forEach(v => { const m = String(v).trim().match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/); if(!m) return; any = true; if(+m[1]>12) dm = true; if(+m[2]>12) md = true; });
+  if(!any) return { order:'dmy', ambiguous:false };
+  if(dm && !md) return { order:'dmy', ambiguous:false };
+  if(md && !dm) return { order:'mdy', ambiguous:false };
+  return { order:'dmy', ambiguous:true };
+}
+function textRows(text){
+  const lines = text.replace(/^\uFEFF/,'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const has = c => lines.some(l=>l.includes(c));
+  const delim = has('\t') ? '\t' : has(';') ? ';' : has(',') ? ',' : null;
+  return lines.map(l => {
+    if(delim==='\t' || delim===';'){ const p = l.split(delim).map(x=>x.trim()); return [p[0], p[1]]; }
+    if(delim===','){
+      const p = l.split(',').map(x=>x.replace(/["']/g,'').trim()), rest = p.slice(1);
+      return [p[0], (rest.length>1 && rest.slice(1).every(x=>/^\d{3}$/.test(x))) ? rest.join(',') : rest[0]];
+    }
+    const p = l.split(/\s+/); let rest = p.slice(1);
+    if(rest.length && /^\d{1,2}:\d{2}/.test(rest[0])) rest = rest.slice(1);
+    return [p[0], (rest.length>1 && rest.slice(1).every(x=>/^\d{3}$/.test(x))) ? rest.join('') : rest[0]];
+  });
+}
+async function unzipEntries(buf){
+  const u = new Uint8Array(buf), dv = new DataView(buf), dec = new TextDecoder();
+  let eocd = -1;
+  for(let i=u.length-22; i>=Math.max(0,u.length-65557); i--){ if(dv.getUint32(i,true)===0x06054b50){ eocd = i; break; } }
+  if(eocd<0) throw new Error('zip');
+  const total = dv.getUint16(eocd+10,true); let p = dv.getUint32(eocd+16,true); const out = {};
+  for(let k=0;k<total;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method = dv.getUint16(p+10,true), csize = dv.getUint32(p+20,true), nlen = dv.getUint16(p+28,true), elen = dv.getUint16(p+30,true), clen = dv.getUint16(p+32,true), lho = dv.getUint32(p+42,true);
+    out[dec.decode(u.subarray(p+46,p+46+nlen))] = { method, csize, lho };
+    p += 46+nlen+elen+clen;
+  }
+  async function get(name){
+    const e = out[name]; if(!e) return null;
+    const start = e.lho+30+dv.getUint16(e.lho+26,true)+dv.getUint16(e.lho+28,true), raw = u.subarray(start,start+e.csize);
+    if(e.method===0) return dec.decode(raw);
+    if(e.method===8){
+      if(typeof DecompressionStream==='undefined') throw new Error('nodecomp');
+      const st = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return dec.decode(await new Response(st).arrayBuffer());
+    }
+    return null;
+  }
+  return { names:Object.keys(out), get };
+}
+async function xlsxRows(buf){
+  const z = await unzipEntries(buf), parse = t => new DOMParser().parseFromString(t,'application/xml');
+  let sheetPath = null;
+  try{
+    const wb = await z.get('xl/workbook.xml'), rels = await z.get('xl/_rels/workbook.xml.rels');
+    if(wb && rels){
+      const sh = parse(wb).getElementsByTagName('sheet')[0], rid = sh && sh.getAttribute('r:id');
+      const rel = [...parse(rels).getElementsByTagName('Relationship')].find(r=>r.getAttribute('Id')===rid);
+      if(rel){ const t = rel.getAttribute('Target'); sheetPath = t.startsWith('/') ? t.slice(1) : 'xl/'+t; }
+    }
+  }catch(e){ if(e.message==='nodecomp') throw e; }
+  if(!sheetPath || !z.names.includes(sheetPath)) sheetPath = z.names.filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort()[0];
+  if(!sheetPath) throw new Error('nosheet');
+  const shared = [], ss = await z.get('xl/sharedStrings.xml');
+  if(ss) [...parse(ss).getElementsByTagName('si')].forEach(si => shared.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join('')));
+  const doc = parse(await z.get(sheetPath)), rows = [];
+  [...doc.getElementsByTagName('row')].forEach(r => {
+    const cells = [];
+    [...r.getElementsByTagName('c')].forEach(c => {
+      const t = c.getAttribute('t'), v = c.getElementsByTagName('v')[0]; let val = null;
+      if(t==='s' && v) val = shared[Number(v.textContent)];
+      else if(t==='inlineStr') val = [...c.getElementsByTagName('t')].map(x=>x.textContent).join('');
+      else if(v) val = v.textContent;
+      if(val!=null && String(val).trim()!=='') cells.push(String(val));
+    });
+    if(cells.length>=2) rows.push([cells[0], cells[1]]);
+  });
+  return rows;
+}
+async function readTableFile(file){
+  const buf = await file.arrayBuffer(), u = new Uint8Array(buf);
+  if(u[0]===0x50 && u[1]===0x4b) return xlsxRows(buf);
+  if(u[0]===0xD0 && u[1]===0xCF) throw new Error('xls');
+  let enc = 'utf-8'; if(u[0]===0xFF && u[1]===0xFE) enc = 'utf-16le'; else if(u[0]===0xFE && u[1]===0xFF) enc = 'utf-16be';
+  return textRows(new TextDecoder(enc).decode(buf));
+}
+function applyImport(ai, list, mode, name){
+  const a = data.accounts[ai], id = 'f'+newId(), idx = new Map(a.history.map(h=>[h.date.slice(0,10),h]));
+  let added = 0, replaced = 0;
+  list.forEach(([k,p]) => {
+    const ex = idx.get(k);
+    if(!ex){ a.history.push({ date:k+'T00:00:00.000Z', points:p, src:id }); added++; }
+    else if(mode==='overwrite' && ex.points!==p){ ex.o = ex.points; ex.points = p; ex.src = id; replaced++; }
+  });
+  if(!added && !replaced) return 0;
+  a.history.sort((x,y)=>x.date<y.date?-1:1);
+  a.last = Date.now();
+  data.imports.push({ id, name:String(name).slice(0,120), accId:a.id, at:new Date().toISOString() });
+  return added+replaced;
+}
+function openImportFile(pref){
+  if(!data.accounts.length){ toast('Create an account first'); return; }
+  let acc = pref!=null ? pref : (ui.lastAcc!=null && ui.lastAcc<data.accounts.length ? ui.lastAcc : (ui.tab==='stats' ? curStatsAcc() : data.mainAccountIndex));
+  let parsed = null, mode = 'keep', order = null;
+  openSheet('<h2>Import from file</h2><label class="lbl">Import into</label><div class="chips" id="ifChips"></div>'+
+    '<button class="btn sec" id="ifPick">Choose file</button>'+
+    '<input type="file" id="ifFile" hidden accept=".xlsx,.xlsm,.csv,.tsv,.txt,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">'+
+    '<p style="color:var(--muted);font-weight:600;font-size:.85rem;line-height:1.45;margin:10px 2px 14px">Excel (.xlsx), CSV or text. Two columns: date, then total points. One row per date. A header row is fine.</p><div id="ifPreview"></div>',
+  s => {
+    const q = x => s.querySelector(x);
+    function chips(){ q('#ifChips').innerHTML = data.accounts.map((a,i)=>'<button class="chip-btn '+(i===acc?'on':'')+'" data-i="'+i+'"><span class="dotc" style="background:'+colorOf(i)+'"></span>'+esc(a.name)+'</button>').join(''); }
+    function compute(){
+      const ord = order || parsed.det.order, map = new Map(); let bad = 0;
+      parsed.rows.forEach(r => { const k = parseDateStr(r[0],ord), v = parseValue(r[1]); if(k && v!=null && v>=0) map.set(k, Math.round(v)); else bad++; });
+      const list = [...map.entries()].sort((a,b)=>a[0]<b[0]?-1:1);
+      const exist = new Map(data.accounts[acc].history.map(h=>[h.date.slice(0,10),h.points]));
+      let fresh = 0, same = 0, diff = 0;
+      list.forEach(([k,p]) => { if(!exist.has(k)) fresh++; else if(exist.get(k)===p) same++; else diff++; });
+      return { list, bad, fresh, same, diff, ord };
+    }
+    function preview(){
+      const box = q('#ifPreview'); if(!parsed){ box.innerHTML = ''; return; }
+      const c = compute();
+      if(!c.list.length){ box.innerHTML = '<div class="prev warn">No rows with a valid date and number were found. Check that the date is in the first column and points in the second.</div>'; return; }
+      const n = c.fresh + (mode==='overwrite' ? c.diff : 0);
+      let h = '<div class="prev"><b>'+esc(parsed.name)+'</b><br>'+c.list.length+' dates, '+fmtDay(keyToNum(c.list[0][0]),true)+' to '+fmtDay(keyToNum(c.list[c.list.length-1][0]),true)+'<br>'+
+        'New: <b>'+c.fresh+'</b>'+(c.same||c.diff?' · Already in '+esc(data.accounts[acc].name)+': <b>'+(c.same+c.diff)+'</b>'+(c.diff?' ('+c.diff+' with a different value)':''):'')+
+        (c.bad?'<br>Skipped rows: '+c.bad+' (headers or invalid values)':'')+
+        '<br>First: '+c.list.slice(0,3).map(([k,p])=>fmtDay(keyToNum(k))+' → '+fmt(p)).join(', ')+'</div>';
+      if(parsed.det.ambiguous) h += '<label class="lbl">Date format in the file</label><div class="seg"><button data-o="dmy" class="'+(c.ord==='dmy'?'on':'')+'">Day / Month</button><button data-o="mdy" class="'+(c.ord==='mdy'?'on':'')+'">Month / Day</button></div>';
+      if(c.diff) h += '<label class="lbl">For dates that already have a different value</label><div class="seg"><button data-m="keep" class="'+(mode==='keep'?'on':'')+'">Keep mine</button><button data-m="overwrite" class="'+(mode==='overwrite'?'on':'')+'">Use the file</button></div>';
+      h += '<button class="btn" id="ifGo"'+(n?'':' disabled style="opacity:.5"')+'>'+(n?'Import '+n+' '+(n===1?'entry':'entries'):'Nothing new to import')+'</button>';
+      box.innerHTML = h;
+    }
+    chips();
+    q('#ifChips').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if(!b) return; acc = Number(b.dataset.i); chips(); preview(); });
+    q('#ifPick').onclick = () => q('#ifFile').click();
+    q('#ifPreview').addEventListener('click', e => {
+      const o = e.target.closest('[data-o]'), m = e.target.closest('[data-m]');
+      if(o){ order = o.dataset.o; preview(); } else if(m){ mode = m.dataset.m; preview(); }
+      else if(e.target.id==='ifGo' && !e.target.disabled){
+        const c = compute(), n = applyImport(acc, c.list, mode, parsed.name);
+        if(!n){ toast('Nothing new to import'); return; }
+        ui.statsAcc = acc; ui.lastAcc = acc; persist(); closeSheet(); render(); toast('Imported '+n+(n===1?' entry':' entries'));
+      }
+    });
+    q('#ifFile').addEventListener('change', async ev => {
+      const f = ev.target.files[0]; ev.target.value = ''; if(!f) return;
+      q('#ifPreview').innerHTML = '<div class="prev">Reading file…</div>';
+      try{
+        const rows = await readTableFile(f);
+        parsed = { name:f.name, rows, det:detectOrder(rows.map(r=>r[0])) }; order = null; mode = 'keep';
+        preview();
+      }catch(err){
+        parsed = null;
+        const msg = err.message==='xls' ? 'Old .xls files aren’t supported. Save the sheet as .xlsx or CSV and try again.'
+          : err.message==='nodecomp' ? 'This browser can’t open .xlsx files. Save the sheet as CSV and try again.'
+          : 'Couldn’t read that file. Try saving it as .xlsx or CSV.';
+        q('#ifPreview').innerHTML = '<div class="prev warn">'+msg+'</div>';
+      }
+    });
+  });
+}
+function openImportRec(id){
+  const im = (data.imports||[]).find(x=>x.id===id); if(!im) return;
+  const n = countSrc(id), acc = data.accounts.find(x=>x.id===im.accId), an = acc ? acc.name : 'its account';
+  openSheet('<h2>Remove “'+esc(im.name)+'”?</h2>'+
+    '<p style="color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:16px">'+n+(n===1?' entry':' entries')+' from this file '+(n===1?'is':'are')+' saved in '+esc(an)+'. Do you want to keep them?</p>'+
+    '<button class="btn" id="irKeep">Yes, keep the data</button>'+
+    '<p style="color:var(--muted);font-size:.8rem;font-weight:600;margin:6px 2px 14px">Only the file is removed. Every entry stays.</p>'+
+    '<button class="btn danger" id="irDel">No, delete the data too</button>'+
+    '<p style="color:var(--muted);font-size:.8rem;font-weight:600;margin:6px 2px 14px">Deletes the '+n+' imported '+(n===1?'entry':'entries')+'. Values the file overwrote are restored.</p>'+
+    '<button class="btn sec" data-a="closeSheet">Cancel</button>',
+  s => {
+    s.querySelector('#irKeep').onclick = () => { removeImport(id,true); closeSheet(); toast('File removed, data kept'); };
+    s.querySelector('#irDel').onclick = () => { removeImport(id,false); closeSheet(); toast('File and its data removed'); };
+  });
+}
+function removeImport(id, keep){
+  data.accounts.forEach(a => {
+    if(keep){ a.history.forEach(h => { if(h.src===id){ delete h.src; delete h.o; } }); }
+    else {
+      a.history = a.history.filter(h => {
+        if(h.src!==id) return true;
+        if(h.o!=null){ h.points = h.o; delete h.src; delete h.o; return true; }
+        return false;
+      });
+    }
+  });
+  data.imports = data.imports.filter(x=>x.id!==id);
+  persist(); render();
+}
+
+/* ---------- actions ---------- */
+const actions = {
+  tab: el => setTab(el.dataset.v),
+  range: el => { ui.range = (RANGES.find(r=>r[0]===el.dataset.v)||RANGES[1])[2]; render(); },
+  pickAcc: el => { ui.statsAcc = Number(el.dataset.v); ui.histAll = false; if(ui.tab!=='stats') setTab('stats'); else render(); },
+  openStatsFor: el => { ui.statsAcc = Number(el.dataset.v); ui.histAll = false; setTab('stats'); },
+  add: el => openEntry(el.dataset.v!==undefined ? Number(el.dataset.v) : undefined),
+  closeSheet: () => closeSheet(),
+  createFirst: () => addAccountFrom('firstName'),
+  createNew: () => addAccountFrom('newName'),
+  openAccount: el => openAccountSheet(Number(el.dataset.v)),
+  editEntry: el => openEditEntry(Number(el.dataset.acc), Number(el.dataset.day)),
+  histMore: () => { ui.histAll = !ui.histAll; render(); },
+  chartMode: el => { ui.chartMode = el.dataset.v; render(); },
+  pctRange: el => { ui.pctRange = (RANGES3.find(r=>r[0]===el.dataset.v)||RANGES3[2])[2]; render(); },
+  heroPick: el => { data.heroAcc = Number(el.dataset.v); persist(); render(); },
+  heroSort: () => { data.heroSort = data.heroSort==='most'?'recent':'most'; persist(); render(); },
+  heatTip: el => toast(el.dataset.tip),
+  importFile: el => openImportFile(el.dataset.v!==undefined ? Number(el.dataset.v) : undefined),
+  openImportRec: el => openImportRec(el.dataset.v),
+  export: () => exportData(),
+  importClick: () => $('importFile').click(),
+  checkUpdate: () => checkForUpdate()
+};
+document.addEventListener('click', e => { const el = e.target.closest('[data-a]'); if(el && actions[el.dataset.a]) actions[el.dataset.a](el, e); });
+document.addEventListener('keydown', e => {
+  if(e.key==='Enter'){ const t = e.target; if(t.id==='firstName') addAccountFrom('firstName'); else if(t.id==='newName') addAccountFrom('newName'); }
+});
+
+/* ---------- render ---------- */
+function render(){
+  renderHome(); renderStats(); renderCharts(); renderAccounts();
+  requestAnimationFrame(drawCharts);
+}
+render();
+
+/* ---------- updates ---------- */
+// Android app: the native side asks GitHub Releases and shows the result itself.
+// Web/PWA: compare the page the service worker cached with the one on the server.
+async function checkForUpdate(){
+  if(window.PointAndroid && PointAndroid.checkForUpdate){ PointAndroid.checkForUpdate(); return; }
+  toast('Checking for updates…');
+  try{
+    // Unique URL + no-store so neither the service worker nor the HTTP cache answers.
+    const res = await fetch('index.html?check='+Date.now(), { cache:'no-store' });
+    if(!res.ok) throw new Error(res.status);
+    const fresh = await res.text();
+    const cached = window.caches ? await caches.match('./index.html') : null;
+    const reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+    if(reg) reg.update().catch(()=>{});
+    if(cached && (await cached.text()) !== fresh){
+      toast('New version found. Updating…');
+      setTimeout(()=>location.reload(), 900);
+    } else toast('You have the latest version');
+  }catch(err){ toast('Could not check. Are you online?'); }
+}
+
+/* ---------- offline (PWA) ---------- */
+if('serviceWorker' in navigator && location.protocol !== 'file:' && !window.PointAndroid){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>

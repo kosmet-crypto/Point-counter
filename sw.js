@@ -1,6 +1,6 @@
 /* Point service worker: offline support.
    Bump VERSION when shipping changes to the app shell list below. */
-const VERSION = 'point-v3';
+const VERSION = 'point-v4';
 const SHELL = [
   './',
   './index.html',

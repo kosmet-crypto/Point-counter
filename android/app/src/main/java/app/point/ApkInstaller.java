@@ -46,15 +46,26 @@ final class ApkInstaller {
         return false;
     }
 
+    /** Extra on the status intent: whether the attempt asked Android to skip the confirmation. */
+    private static final String EXTRA_QUIET = "quiet";
+
     /** Downloads the latest release APK and starts the install. Call from a background thread. */
     static void downloadAndInstall(Activity activity, Listener listener) {
+        downloadAndInstall(activity, listener, true);
+    }
+
+    /**
+     * quiet: ask Android to install without a confirmation screen (Android 12+, app updating itself).
+     * When a phone refuses that, the same download is retried with Android's normal install screen.
+     */
+    static void downloadAndInstall(Activity activity, Listener listener, boolean quiet) {
         PackageInstaller installer = activity.getPackageManager().getPackageInstaller();
         int sessionId = -1;
         try {
             PackageInstaller.SessionParams params =
                     new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             params.setAppPackageName(activity.getPackageName());
-            if (Build.VERSION.SDK_INT >= 31) {
+            if (quiet && Build.VERSION.SDK_INT >= 31) {
                 params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
             }
             sessionId = installer.createSession(params);
@@ -77,6 +88,7 @@ final class ApkInstaller {
                 }
                 Intent status = new Intent(activity, MainActivity.class)
                         .setAction(ACTION_STATUS)
+                        .putExtra(EXTRA_QUIET, quiet)
                         .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 int flags = PendingIntent.FLAG_UPDATE_CURRENT
                         | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
@@ -120,7 +132,13 @@ final class ApkInstaller {
                 listener.onMessage("This update cannot replace the installed app (different signature)");
                 break;
             default:
-                listener.onMessage("Update failed. Try again later.");
+                if (intent.getBooleanExtra(EXTRA_QUIET, false)) {
+                    // The quiet install was refused on this phone: try again with the install screen.
+                    listener.onMessage("Opening the installer…");
+                    new Thread(() -> downloadAndInstall(activity, listener, false)).start();
+                } else {
+                    listener.onMessage("Update failed. Try again later.");
+                }
         }
         return true;
     }

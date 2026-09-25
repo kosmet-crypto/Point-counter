@@ -31,6 +31,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Hosts the Point web app (bundled in assets/www) in a full-screen WebView.
@@ -221,7 +223,11 @@ public class MainActivity extends Activity {
                 String tag = new JSONObject(body).optString("tag_name", "");
                 final long latest = Long.parseLong(tag.substring(tag.lastIndexOf('.') + 1));
                 final String name = tag.startsWith("v") ? tag.substring(1) : tag;
-                if (latest > installedVersionCode()) runOnUiThread(() -> showUpdateDialog(name));
+                // A newer release with the same Android part as this app only has web changes, which
+                // WebUpdater already brings in quietly; only offer the APK when android/ changed.
+                Matcher nat = Pattern.compile("native: ([0-9a-f]{12})").matcher(new JSONObject(body).optString("body", ""));
+                boolean sameNative = nat.find() && nat.group(1).equals(BuildConfig.NATIVE_HASH);
+                if (latest > installedVersionCode() && !sameNative) runOnUiThread(() -> showUpdateDialog(name));
                 else if (manual && pageUpdated) runOnUiThread(this::showPageUpdatedDialog);
                 else if (manual) toast("You have the latest version");
             } catch (Exception e) {
@@ -273,15 +279,6 @@ public class MainActivity extends Activity {
                 .setMessage("Point " + version + " is ready. Install it now? Your data stays in place.")
                 .setPositiveButton("Update", (d, w) -> startApkInstall())
                 .setNegativeButton("Later", null)
-                // Fallback if the in-app install does not work on this phone.
-                .setNeutralButton("Browser", (d, w) -> {
-                    Uri apk = Uri.parse("https://github.com/" + BuildConfig.UPDATE_REPO
-                            + "/releases/latest/download/point.apk");
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, apk));
-                    } catch (ActivityNotFoundException ignored) {
-                    }
-                })
                 .show();
     }
 

@@ -24,6 +24,11 @@ jobs:
 
       # The Ubuntu runner ships the Android SDK (ANDROID_HOME); Gradle fetches any missing platform.
 
+      # Fingerprint of the Android part (not the web page). The app only offers an APK update when
+      # the newest release's fingerprint differs from its own; web-only changes come in through WebUpdater.
+      - name: Fingerprint the Android part
+        run: echo "NATIVE_HASH=$(git ls-files -s android | sha1sum | cut -c1-12)" >> "$GITHUB_ENV"
+
       - name: Build APK
         working-directory: android
         run: |
@@ -49,4 +54,4 @@ jobs:
           BUILD=$(( ${{ github.run_number }} + BUILD_OFFSET ))
           gh release create "v1.0.$BUILD" point.apk \
             --title "Point 1.0.$BUILD" \
-            --notes "Android build of commit ${{ github.sha }}. Download point.apk below and open it on your phone to install or update."
+            --notes "Android build of commit ${{ github.sha }}. Download point.apk below and open it on your phone to install or update. native: ${{ env.NATIVE_HASH }}"

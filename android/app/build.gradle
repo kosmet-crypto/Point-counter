@@ -28,6 +28,8 @@ android {
         versionCode build
         versionName "1.0.${build}"
         // Where the app looks for newer APKs (GitHub Releases of this repo).
+        // Fingerprint of android/ from CI; a newer release with the same one only has web changes.
+        buildConfigField 'String', 'NATIVE_HASH', "\"${System.getenv('NATIVE_HASH') ?: ''}\""
         buildConfigField 'String', 'UPDATE_REPO', "\"${System.getenv('GITHUB_REPOSITORY') ?: 'kosmet-crypto/Point-counter'}\""
     }
 

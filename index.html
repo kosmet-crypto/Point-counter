@@ -777,6 +777,7 @@ function renderAccounts(){
   const ver = window.PointAndroid && PointAndroid.getVersion ? PointAndroid.getVersion() : '';
   h += '<div class="card"><h3>Updates</h3><p class="note">'+(ver ? 'Point '+esc(ver)+' for Android.' : 'Point web app.')+' Updates keep your data.</p>'+
     '<button class="btn sec mt" data-a="checkUpdate">Check for updates</button></div>';
+  h += '<div class="card"><h3>About</h3><p class="note">Developed by <b style="color:var(--text)">Ivan S. - Epicurus001</b>, Oslo.</p></div>';
   el.innerHTML = h;
 }
 function addAccountFrom(id){

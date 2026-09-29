@@ -42,3 +42,10 @@ The owner talks in Serbian (Cyrillic); answer in Serbian. Code, comments and com
   arrive through `WebUpdater`.
 - **Signing:** `android/app/point.keystore` must never change. A different key means installed apps
   cannot update and the owner would have to reinstall (and restore a backup).
+
+## Keeping sessions cheap
+- Batch work: do the remaining small items together in one PR, with one CI build and one merge.
+- Verify in the browser with numbers (DOM values, counts, page errors); take a screenshot only when
+  the layout changes. Screenshots are the most expensive step.
+- Keep replies short: what was done and what the owner should try.
+- Do not watch CI live or poll it; report back once the build has finished.

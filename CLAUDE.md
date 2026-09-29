@@ -43,6 +43,14 @@ The owner talks in Serbian (Cyrillic); answer in Serbian. Code, comments and com
 - **Signing:** `android/app/point.keystore` must never change. A different key means installed apps
   cannot update and the owner would have to reinstall (and restore a backup).
 
+## Standard setup for the owner's apps
+When the owner adds a new app repo and asks for "the same as Point / Team Shuffler", set up:
+own app icon (web PNGs incl. maskable + Android adaptive and monochrome vectors), PWA manifest and
+service worker, Android WebView wrapper with its own package and keystore, CI that builds the APK and
+publishes a release, in-app update check with a manual "Check for updates" button, silent page updates,
+and a README with install and update instructions. Team Shuffler (`kosmet-crypto/Team-Shuffler`) is
+the second app built this way.
+
 ## Keeping sessions cheap
 - Batch work: do the remaining small items together in one PR, with one CI build and one merge.
 - Verify in the browser with numbers (DOM values, counts, page errors); take a screenshot only when

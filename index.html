@@ -143,6 +143,10 @@ h1,h2,h3,p{margin:0}
 /* charts */
 .chart-wrap{position:relative;margin-top:8px}
 .chart-wrap canvas{width:100%;height:220px;display:block;touch-action:pan-y}
+.gapt{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.gapt th,.gapt td{padding:8px 4px;text-align:right;border-top:1px solid var(--line)}
+.gapt tr:first-child th{border-top:0;color:var(--muted);font-size:.78rem}
+.gapt th:first-child{text-align:left;color:var(--muted);font-weight:600}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;font-weight:600;color:var(--muted);margin-top:8px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.78rem;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:opacity .12s;min-width:120px;z-index:5}
@@ -231,7 +235,7 @@ const DAY = 864e5, LS_KEY = 'pointDataV1', OLD_KEY = 'snapDataV11';
 const PALETTE = ['#8b7bff','#3ddc97','#ffb84d','#ff6b81','#4fc3f7','#f472b6','#b6e35a','#ff8a5b'];
 const LOGO = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>';
 const $ = id => document.getElementById(id);
-const ui = { tab:'home', range:30, statsAcc:null, chartMode:'change', pctRange:30, histAll:false, lastAcc:null, entryMode:'total' };
+const ui = { tab:'home', range:30, statsAcc:null, chartMode:'change', pctRange:30, gapAcc:null, histAll:false, lastAcc:null, entryMode:'total' };
 
 /* ---------- date + number helpers ---------- */
 const pad = n => String(n).padStart(2,'0');
@@ -616,23 +620,36 @@ function buildGainSeries(win){
   });
   return out;
 }
-function buildPctSeries(win){
-  const [start,end] = win, out = [];
-  if(data.accounts.length<2) return out;
-  const M = entries(data.accounts[data.mainAccountIndex]); if(!M.length) return out;
-  const stepDays = Math.max(1, Math.ceil((end-start)/120));
-  data.accounts.forEach((a,i) => {
-    if(i===data.mainAccountIndex) return;
-    const e = entries(a), pts = [];
-    for(let d=start; d<=end; d+=stepDays){
-      const m = valueAt(M,d), o = valueAt(e,d);
-      if(m!=null && o!=null && o>0) pts.push({x:d,y:m/o*100});
-    }
-    const lastD = end, m2 = valueAt(M,lastD), o2 = valueAt(e,lastD);
-    if(m2!=null && o2>0 && (!pts.length || pts[pts.length-1].x!==lastD)) pts.push({x:lastD,y:m2/o2*100});
-    if(pts.length) out.push({ name:'Main vs '+a.name, color:colorOf(i), pts });
+function gapAccIndex(){
+  if(data.accounts.length<2) return -1;
+  const g = ui.gapAcc;
+  if(g!=null && g!==data.mainAccountIndex && data.accounts[g]) return g;
+  return data.mainAccountIndex===0 ? 1 : 0;
+}
+// Main's gain minus the other account's gain since the window start.
+function buildGapSeries(gi, win){
+  const [start,end] = win, M = entries(data.accounts[data.mainAccountIndex]), O = entries(data.accounts[gi]);
+  const diff = d => { const m = valueAt(M,d), o = valueAt(O,d); return m!=null && o!=null ? m-o : null; };
+  const days = new Set([start,end]);
+  M.concat(O).forEach(x => { if(x.day>start && x.day<end) days.add(x.day); });
+  let base = null; const pts = [];
+  [...days].sort((a,b)=>a-b).forEach(d => { const v = diff(d); if(v==null) return; if(base==null) base = v; pts.push({x:d,y:v-base}); });
+  return pts.length ? [{ name:'Gained on '+data.accounts[gi].name, color:colorOf(gi), pts }] : [];
+}
+function gapTable(gi){
+  const M = data.accounts[data.mainAccountIndex], O = data.accounts[gi], me = entries(M), oe = entries(O);
+  if(!me.length || !oe.length) return '';
+  const end = Math.max(me[me.length-1].day, oe[oe.length-1].day);
+  const gain = (e,n) => { const a = valueAt(e,end), b = valueAt(e,end-n); return a!=null && b!=null ? a-b : null; };
+  const cell = v => '<td class="'+(v==null?'flat':cls(v))+'">'+(v==null?'—':sgn(v))+'</td>';
+  const gap = valueAt(oe,end)-valueAt(me,end);
+  let rows = '';
+  [['Day',1],['Week',7],['Month',30],['Year',365]].forEach(([l,n]) => {
+    const gm = gain(me,n), go = gain(oe,n);
+    rows += '<tr><th>'+l+'</th>'+cell(gm)+cell(go)+cell(gm!=null&&go!=null?gm-go:null)+'</tr>';
   });
-  return out;
+  return '<div class="card"><h3>Gap, plus and minus</h3><p class="note">'+(gap>0?'Gap':'Lead')+' now: <b style="color:var(--text)">'+fmt(Math.abs(gap))+'</b> points. Net is what '+esc(M.name)+' gained on '+esc(O.name)+'; plus means '+esc(M.name)+' is gaining ground.</p>'+
+    '<table class="gapt mt"><tr><th></th><th>'+esc(M.name)+'</th><th>'+esc(O.name)+'</th><th>Net</th></tr>'+rows+'</table></div>';
 }
 function chartCard(id, title, series, extra, opts){
   const legend = series.map(s=>'<span><i class="dotc" style="background:'+s.color+'"></i>'+esc(s.name)+'</span>').join('');
@@ -646,22 +663,27 @@ function renderCharts(){
   const win = chartWindow();
   if(!win){ el.innerHTML = h+'<div class="card"><p class="empty">Nothing to chart yet.<br>Add a few entries first.</p></div>'; return; }
   h += rangeChips()+'<p class="note" style="margin:-4px 2px 10px;color:var(--muted);font-size:.8rem;font-weight:600">This range applies to the first two charts.</p>';
+  if(ui.chartMode!=='change' && ui.chartMode!=='pct') ui.chartMode = 'change';
   const m = ui.chartMode;
-  const mode = '<div class="seg" style="margin:8px 0 0"><button data-a="chartMode" data-v="change" class="'+(m==='change'?'on':'')+'">Change</button><button data-a="chartMode" data-v="total" class="'+(m==='total'?'on':'')+'">Total</button><button data-a="chartMode" data-v="pct" class="'+(m==='pct'?'on':'')+'">Growth %</button></div>';
+  const mode = '<div class="seg" style="margin:8px 0 0"><button data-a="chartMode" data-v="change" class="'+(m==='change'?'on':'')+'">Change</button><button data-a="chartMode" data-v="pct" class="'+(m==='pct'?'on':'')+'">Growth %</button></div>';
   const s1 = m==='change' ? buildChangeSeries(win) : buildTotalSeries(win);
   const s2 = buildGainSeries(win);
-  const win3 = chartWindow(ui.pctRange), s3 = buildPctSeries(win3);
+  const gi = gapAccIndex(), win3 = chartWindow(ui.pctRange), s3 = gi<0 ? [] : buildGapSeries(gi, win3);
   chartStore.c1 = m==='change' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true }
     : m==='pct' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v)+'%', tipFmt:sgnPct, area:s1.length===1 }
     : { series:s1, yFmt:compact, tipFmt:fmt, area:s1.length===1 };
   chartStore.c2 = { series:s2, yFmt:v=>compact(v), tipFmt:sgn, zero:true };
-  chartStore.c3 = { series:s3, yFmt:v=>v.toFixed(v>=100?0:1)+'%', tipFmt:v=>v.toFixed(2)+'%' };
-  const t1 = m==='change' ? 'Point change' : m==='pct' ? 'Growth since start of range' : 'Total points';
+  chartStore.c3 = { series:s3, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true };
+  const t1 = m==='change' ? 'Point change' : 'Growth since start of range';
   const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Difference from the previous entry. If you logged 100 yesterday and 120 today, it shows 20.</p>':'');
   h += chartCard('c1', t1, s1, x1, {emptyMsg:'Needs at least two entries in an account.'});
   h += chartCard('c2', 'Daily gain', s2, '<p class="note">Days between entries share the change evenly.</p>', {});
   const seg3 = '<div class="seg" style="margin:8px 0 0">'+RANGES3.map(r=>'<button data-a="pctRange" data-v="'+r[0]+'" class="'+(ui.pctRange===r[2]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>';
-  h += chartCard('c3', 'Main as % of each account', s3, seg3, {emptyMsg:data.accounts.length<2?'Add a second account to compare percentages.':'No data in this range.'});
+  if(gi<0){ h += chartCard('c3', 'Main vs other accounts', [], '', {emptyMsg:'Add a second account to compare.'}); el.innerHTML = h; return; }
+  const M = data.accounts[data.mainAccountIndex], O = data.accounts[gi];
+  const pick = data.accounts.length>2 ? '<div class="seg" style="margin:8px 0 0;flex-wrap:wrap">'+data.accounts.map((a,i)=>i===data.mainAccountIndex?'':'<button data-a="gapAcc" data-v="'+i+'" class="'+(i===gi?'on':'')+'">'+esc(a.name)+'</button>').join('')+'</div>' : '';
+  h += chartCard('c3', esc(M.name)+' vs '+esc(O.name), s3, pick+seg3+'<p class="note" style="margin-top:8px">Points '+esc(M.name)+' gained on '+esc(O.name)+' since the start of the range. Above zero, '+esc(M.name)+' is gaining ground.</p>', {emptyMsg:'No data in this range.'});
+  h += gapTable(gi);
   el.innerHTML = h;
 }
 function niceTicks(min,max,n){
@@ -1161,6 +1183,7 @@ const actions = {
   editEntry: el => openEditEntry(Number(el.dataset.acc), Number(el.dataset.day)),
   histMore: () => { ui.histAll = !ui.histAll; render(); },
   chartMode: el => { ui.chartMode = el.dataset.v; render(); },
+  gapAcc: el => { ui.gapAcc = +el.dataset.v; render(); },
   pctRange: el => { ui.pctRange = (RANGES3.find(r=>r[0]===el.dataset.v)||RANGES3[2])[2]; render(); },
   heroPick: el => { data.heroAcc = Number(el.dataset.v); persist(); render(); },
   heroSort: () => { data.heroSort = data.heroSort==='most'?'recent':'most'; persist(); render(); },

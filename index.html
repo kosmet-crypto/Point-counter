@@ -235,7 +235,7 @@ const DAY = 864e5, LS_KEY = 'pointDataV1', OLD_KEY = 'snapDataV11';
 const PALETTE = ['#8b7bff','#3ddc97','#ffb84d','#ff6b81','#4fc3f7','#f472b6','#b6e35a','#ff8a5b'];
 const LOGO = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>';
 const $ = id => document.getElementById(id);
-const ui = { tab:'home', range:30, statsAcc:null, chartMode:'change', pctRange:30, gapAcc:null, histAll:false, lastAcc:null, entryMode:'total' };
+const ui = { tab:'home', range:30, statsAcc:null, chartMode:'change', pctRange:30, gapAcc:null, gapMode:'pts', histAll:false, lastAcc:null, entryMode:'total' };
 
 /* ---------- date + number helpers ---------- */
 const pad = n => String(n).padStart(2,'0');
@@ -636,6 +636,22 @@ function buildGapSeries(gi, win){
   [...days].sort((a,b)=>a-b).forEach(d => { const v = diff(d); if(v==null) return; if(base==null) base = v; pts.push({x:d,y:v-base}); });
   return pts.length ? [{ name:'Gained on '+data.accounts[gi].name, color:colorOf(gi), pts }] : [];
 }
+// Main as % of the other account, or days until the gap closes at the 30-day pace, sampled over the window.
+function buildGapRatioSeries(gi, win, mode){
+  const [start,end] = win, M = entries(data.accounts[data.mainAccountIndex]), O = entries(data.accounts[gi]);
+  const step = Math.max(1, Math.ceil((end-start)/120)), pts = [];
+  const at = d => {
+    const m = valueAt(M,d), o = valueAt(O,d); if(m==null || o==null) return null;
+    if(mode==='pct') return o>0 ? m/o*100 : null;
+    const back = Math.max(d-30, Math.max(M[0].day, O[0].day)), n = d-back; if(n<1) return null;
+    const m0 = valueAt(M,back), o0 = valueAt(O,back);
+    const closing = Math.sign(o-m)*((m-m0)-(o-o0))/n, gap = Math.abs(o-m);
+    return gap>0 && closing>0 ? Math.min(3650, Math.ceil(gap/closing)) : null;
+  };
+  for(let d=start; d<=end; d+=step){ const v = at(d); if(v!=null) pts.push({x:d,y:v}); }
+  if(!pts.length || pts[pts.length-1].x!==end){ const v = at(end); if(v!=null) pts.push({x:end,y:v}); }
+  return pts.length ? [{ name:mode==='pct'?data.accounts[data.mainAccountIndex].name+' as % of '+data.accounts[gi].name:'Days until the gap closes', color:colorOf(gi), pts }] : [];
+}
 function gapTable(gi){
   const M = data.accounts[data.mainAccountIndex], O = data.accounts[gi], me = entries(M), oe = entries(O);
   if(!me.length || !oe.length) return '';
@@ -668,12 +684,14 @@ function renderCharts(){
   const mode = '<div class="seg" style="margin:8px 0 0"><button data-a="chartMode" data-v="change" class="'+(m==='change'?'on':'')+'">Change</button><button data-a="chartMode" data-v="pct" class="'+(m==='pct'?'on':'')+'">Growth %</button></div>';
   const s1 = m==='change' ? buildChangeSeries(win) : buildTotalSeries(win);
   const s2 = buildGainSeries(win);
-  const gi = gapAccIndex(), win3 = chartWindow(ui.pctRange), s3 = gi<0 ? [] : buildGapSeries(gi, win3);
+  const gi = gapAccIndex(), win3 = chartWindow(ui.pctRange), gm = ui.gapMode, s3 = gi<0 ? [] : gm==='pts' ? buildGapSeries(gi, win3) : buildGapRatioSeries(gi, win3, gm);
   chartStore.c1 = m==='change' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true }
     : m==='pct' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v)+'%', tipFmt:sgnPct, area:s1.length===1 }
     : { series:s1, yFmt:compact, tipFmt:fmt, area:s1.length===1 };
   chartStore.c2 = { series:s2, yFmt:v=>compact(v), tipFmt:sgn, zero:true };
-  chartStore.c3 = { series:s3, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true };
+  chartStore.c3 = gm==='pct' ? { series:s3, yFmt:v=>v.toFixed(2)+'%', tipFmt:v=>v.toFixed(2)+'%' }
+    : gm==='eta' ? { series:s3, yFmt:v=>compact(v)+'d', tipFmt:v=>daysText(v) }
+    : { series:s3, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true };
   const t1 = m==='change' ? 'Point change' : 'Growth since start of range';
   const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Difference from the previous entry. If you logged 100 yesterday and 120 today, it shows 20.</p>':'');
   h += chartCard('c1', t1, s1, x1, {emptyMsg:'Needs at least two entries in an account.'});
@@ -682,7 +700,11 @@ function renderCharts(){
   if(gi<0){ h += chartCard('c3', 'Main vs other accounts', [], '', {emptyMsg:'Add a second account to compare.'}); el.innerHTML = h; return; }
   const M = data.accounts[data.mainAccountIndex], O = data.accounts[gi];
   const pick = data.accounts.length>2 ? '<div class="seg" style="margin:8px 0 0;flex-wrap:wrap">'+data.accounts.map((a,i)=>i===data.mainAccountIndex?'':'<button data-a="gapAcc" data-v="'+i+'" class="'+(i===gi?'on':'')+'">'+esc(a.name)+'</button>').join('')+'</div>' : '';
-  h += chartCard('c3', esc(M.name)+' vs '+esc(O.name), s3, pick+seg3+'<p class="note" style="margin-top:8px">Points '+esc(M.name)+' gained on '+esc(O.name)+' since the start of the range. Above zero, '+esc(M.name)+' is gaining ground.</p>', {emptyMsg:'No data in this range.'});
+  const gseg = '<div class="seg" style="margin:8px 0 0">'+[['pts','Points'],['pct','Share %'],['eta','Days to close']].map(([k,l])=>'<button data-a="gapMode" data-v="'+k+'" class="'+(gm===k?'on':'')+'">'+l+'</button>').join('')+'</div>';
+  const gnote = gm==='pct' ? esc(M.name)+' as a percentage of '+esc(O.name)+'. Rising means '+esc(M.name)+' is gaining ground.'
+    : gm==='eta' ? 'Days until the gap closes at the 30-day pace of both accounts, as it looked on each day. Falling means it is closing faster.'
+    : 'Points '+esc(M.name)+' gained on '+esc(O.name)+' since the start of the range. Above zero, '+esc(M.name)+' is gaining ground.';
+  h += chartCard('c3', esc(M.name)+' vs '+esc(O.name), s3, pick+gseg+seg3+'<p class="note" style="margin-top:8px">'+gnote+'</p>', {emptyMsg:gm==='eta'?'The gap is not closing at the current pace.':'No data in this range.'});
   h += gapTable(gi);
   el.innerHTML = h;
 }
@@ -1183,6 +1205,7 @@ const actions = {
   editEntry: el => openEditEntry(Number(el.dataset.acc), Number(el.dataset.day)),
   histMore: () => { ui.histAll = !ui.histAll; render(); },
   chartMode: el => { ui.chartMode = el.dataset.v; render(); },
+  gapMode: el => { ui.gapMode = el.dataset.v; render(); },
   gapAcc: el => { ui.gapAcc = +el.dataset.v; render(); },
   pctRange: el => { ui.pctRange = (RANGES3.find(r=>r[0]===el.dataset.v)||RANGES3[2])[2]; render(); },
   heroPick: el => { data.heroAcc = Number(el.dataset.v); persist(); render(); },

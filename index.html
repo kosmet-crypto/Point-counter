@@ -636,6 +636,12 @@ function buildGapSeries(gi, win){
   [...days].sort((a,b)=>a-b).forEach(d => { const v = diff(d); if(v==null) return; if(base==null) base = v; pts.push({x:d,y:v-base}); });
   return pts.length ? [{ name:'Gained on '+data.accounts[gi].name, color:colorOf(gi), pts }] : [];
 }
+// 30-day points per day as of a day, measured the same way as statsFor(a,30).avg on the Stats tab.
+function pace30(e, d){
+  const last = entryAtOrBefore(e,d); if(!last || last===e[0]) return 0;
+  const base = entryAtOrBefore(e, last.day-30) || e[0];
+  return (last.points-base.points)/Math.max(1, last.day-base.day);
+}
 // Main as % of the other account, or days until the gap closes at the 30-day pace, sampled over the window.
 function buildGapRatioSeries(gi, win, mode){
   const [start,end] = win, M = entries(data.accounts[data.mainAccountIndex]), O = entries(data.accounts[gi]);
@@ -643,9 +649,7 @@ function buildGapRatioSeries(gi, win, mode){
   const at = d => {
     const m = valueAt(M,d), o = valueAt(O,d); if(m==null || o==null) return null;
     if(mode==='pct') return o>0 ? m/o*100 : null;
-    const back = Math.max(d-30, Math.max(M[0].day, O[0].day)), n = d-back; if(n<1) return null;
-    const m0 = valueAt(M,back), o0 = valueAt(O,back);
-    const closing = Math.sign(o-m)*((m-m0)-(o-o0))/n, gap = Math.abs(o-m);
+    const closing = Math.sign(o-m)*(pace30(M,d)-pace30(O,d)), gap = Math.abs(o-m);
     return gap>0 && closing>0 ? Math.min(3650, Math.ceil(gap/closing)) : null;
   };
   for(let d=start; d<=end; d+=step){ const v = at(d); if(v!=null) pts.push({x:d,y:v}); }

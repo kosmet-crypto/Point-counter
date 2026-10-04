@@ -301,7 +301,14 @@ function persist(){
   catch(e){ toast("Couldn't save. Export a backup now."); return false; }
 }
 const entries = a => a.history.map(h => ({ day:keyToNum(h.date.slice(0,10)), points:h.points, src:h.src }));
-function valueAt(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i].points; return null; }
+// Points on a day; days skipped between two entries share the change evenly (linear), after the last entry it stays flat.
+function valueAt(e, day){
+  for(let i=e.length-1;i>=0;i--) if(e[i].day<=day){
+    const a = e[i], n = e[i+1];
+    return n && day>a.day ? a.points+(n.points-a.points)*(day-a.day)/(n.day-a.day) : a.points;
+  }
+  return null;
+}
 function entryAtOrBefore(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i]; return null; }
 
 function dailySeries(e){
@@ -587,8 +594,8 @@ function chartWindow(range){
 function buildChangeSeries(win){
   const [start,end] = win, out = [];
   data.accounts.forEach((a,i) => {
-    const e = entries(a), pts = [];
-    for(let k=1;k<e.length;k++) if(e[k].day>=start && e[k].day<=end) pts.push({ x:e[k].day, y:e[k].points-e[k-1].points });
+    // Skipped days share the change evenly, like Daily gain.
+    const pts = dailySeries(entries(a)).filter(x=>x.day>=start&&x.day<=end).map(x=>({x:x.day,y:x.gain}));
     if(pts.length) out.push({ name:a.name, color:colorOf(i), pts });
   });
   return out;
@@ -609,14 +616,6 @@ function buildTotalSeries(win){
       pts = pts.map(p=>({x:p.x,y:(p.y/base-1)*100}));
     }
     out.push({ name:a.name, color:colorOf(i), pts });
-  });
-  return out;
-}
-function buildGainSeries(win){
-  const [start,end] = win, out = [];
-  data.accounts.forEach((a,i) => {
-    const pts = dailySeries(entries(a)).filter(x=>x.day>=start&&x.day<=end).map(x=>({x:x.day,y:x.gain}));
-    if(pts.length) out.push({ name:a.name, color:colorOf(i), pts });
   });
   return out;
 }
@@ -682,24 +681,21 @@ function renderCharts(){
   let h = '<h1 class="page-title">Charts</h1>';
   const win = chartWindow();
   if(!win){ el.innerHTML = h+'<div class="card"><p class="empty">Nothing to chart yet.<br>Add a few entries first.</p></div>'; return; }
-  h += rangeChips()+'<p class="note" style="margin:-4px 2px 10px;color:var(--muted);font-size:.8rem;font-weight:600">This range applies to the first two charts.</p>';
+  h += rangeChips()+'<p class="note" style="margin:-4px 2px 10px;color:var(--muted);font-size:.8rem;font-weight:600">This range applies to the first chart.</p>';
   if(ui.chartMode!=='change' && ui.chartMode!=='pct') ui.chartMode = 'change';
   const m = ui.chartMode;
   const mode = '<div class="seg" style="margin:8px 0 0"><button data-a="chartMode" data-v="change" class="'+(m==='change'?'on':'')+'">Change</button><button data-a="chartMode" data-v="pct" class="'+(m==='pct'?'on':'')+'">Growth %</button></div>';
   const s1 = m==='change' ? buildChangeSeries(win) : buildTotalSeries(win);
-  const s2 = buildGainSeries(win);
   const gi = gapAccIndex(), win3 = chartWindow(ui.pctRange), gm = ui.gapMode, s3 = gi<0 ? [] : gm==='pts' ? buildGapSeries(gi, win3) : buildGapRatioSeries(gi, win3, gm);
   chartStore.c1 = m==='change' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true }
     : m==='pct' ? { series:s1, yFmt:v=>(v>0?'+':'')+compact(v)+'%', tipFmt:sgnPct, area:s1.length===1 }
     : { series:s1, yFmt:compact, tipFmt:fmt, area:s1.length===1 };
-  chartStore.c2 = { series:s2, yFmt:v=>compact(v), tipFmt:sgn, zero:true };
   chartStore.c3 = gm==='pct' ? { series:s3, yFmt:v=>v.toFixed(2)+'%', tipFmt:v=>v.toFixed(2)+'%' }
     : gm==='eta' ? { series:s3, yFmt:v=>compact(v)+'d', tipFmt:v=>daysText(v) }
     : { series:s3, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true };
   const t1 = m==='change' ? 'Point change' : 'Growth since start of range';
-  const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Difference from the previous entry. If you logged 100 yesterday and 120 today, it shows 20.</p>':'');
+  const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Change per day. If you logged 200, skipped a day and then logged 250, each of the two days shows 25.</p>':'');
   h += chartCard('c1', t1, s1, x1, {emptyMsg:'Needs at least two entries in an account.'});
-  h += chartCard('c2', 'Daily gain', s2, '<p class="note">Days between entries share the change evenly.</p>', {});
   const seg3 = '<div class="seg" style="margin:8px 0 0">'+RANGES3.map(r=>'<button data-a="pctRange" data-v="'+r[0]+'" class="'+(ui.pctRange===r[2]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>';
   if(gi<0){ h += chartCard('c3', 'Main vs other accounts', [], '', {emptyMsg:'Add a second account to compare.'}); el.innerHTML = h; return; }
   const M = data.accounts[data.mainAccountIndex], O = data.accounts[gi];
@@ -769,7 +765,7 @@ function drawChart(id, hoverX){
   canvas._geo = { padL, pw, xMin, xMax };
 }
 function attachChartEvents(){
-  ['c1','c2','c3'].forEach(id => {
+  ['c1','c3'].forEach(id => {
     const c = $(id); if(!c) return;
     const tip = $('tip-'+id);
     const move = e => {
@@ -794,9 +790,9 @@ function attachChartEvents(){
 }
 document.addEventListener('pointerdown', e => {
   if(!e.target.closest('canvas')) document.querySelectorAll('.tip.on').forEach(t => { t.classList.remove('on'); });
-  if(!e.target.closest('canvas') && ui.tab==='charts') ['c1','c2','c3'].forEach(id => drawChart(id));
+  if(!e.target.closest('canvas') && ui.tab==='charts') ['c1','c3'].forEach(id => drawChart(id));
 });
-function drawCharts(){ if(ui.tab!=='charts') return; ['c1','c2','c3'].forEach(id => drawChart(id)); attachChartEvents(); }
+function drawCharts(){ if(ui.tab!=='charts') return; ['c1','c3'].forEach(id => drawChart(id)); attachChartEvents(); }
 let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCharts, 120); });
 
 /* ---------- ACCOUNTS ---------- */

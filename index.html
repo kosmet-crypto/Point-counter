@@ -594,8 +594,8 @@ function chartWindow(range){
 function buildChangeSeries(win){
   const [start,end] = win, out = [];
   data.accounts.forEach((a,i) => {
-    const e = entries(a), pts = [];
-    for(let k=1;k<e.length;k++) if(e[k].day>=start && e[k].day<=end) pts.push({ x:e[k].day, y:e[k].points-e[k-1].points });
+    // Skipped days share the change evenly, like Daily gain.
+    const pts = dailySeries(entries(a)).filter(x=>x.day>=start&&x.day<=end).map(x=>({x:x.day,y:x.gain}));
     if(pts.length) out.push({ name:a.name, color:colorOf(i), pts });
   });
   return out;
@@ -704,7 +704,7 @@ function renderCharts(){
     : gm==='eta' ? { series:s3, yFmt:v=>compact(v)+'d', tipFmt:v=>daysText(v) }
     : { series:s3, yFmt:v=>(v>0?'+':'')+compact(v), tipFmt:sgn, zero:true };
   const t1 = m==='change' ? 'Point change' : 'Growth since start of range';
-  const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Difference from the previous entry. If you logged 100 yesterday and 120 today, it shows 20.</p>':'');
+  const x1 = mode+(m==='change'?'<p class="note" style="margin-top:8px">Change per day. If you logged 200, skipped a day and then logged 250, each of the two days shows 25.</p>':'');
   h += chartCard('c1', t1, s1, x1, {emptyMsg:'Needs at least two entries in an account.'});
   h += chartCard('c2', 'Daily gain', s2, '<p class="note">Days between entries share the change evenly.</p>', {});
   const seg3 = '<div class="seg" style="margin:8px 0 0">'+RANGES3.map(r=>'<button data-a="pctRange" data-v="'+r[0]+'" class="'+(ui.pctRange===r[2]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>';

@@ -301,7 +301,14 @@ function persist(){
   catch(e){ toast("Couldn't save. Export a backup now."); return false; }
 }
 const entries = a => a.history.map(h => ({ day:keyToNum(h.date.slice(0,10)), points:h.points, src:h.src }));
-function valueAt(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i].points; return null; }
+// Points on a day; days skipped between two entries share the change evenly (linear), after the last entry it stays flat.
+function valueAt(e, day){
+  for(let i=e.length-1;i>=0;i--) if(e[i].day<=day){
+    const a = e[i], n = e[i+1];
+    return n && day>a.day ? a.points+(n.points-a.points)*(day-a.day)/(n.day-a.day) : a.points;
+  }
+  return null;
+}
 function entryAtOrBefore(e, day){ for(let i=e.length-1;i>=0;i--) if(e[i].day<=day) return e[i]; return null; }
 
 function dailySeries(e){
